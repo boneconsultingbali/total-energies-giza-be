@@ -22,6 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:reset": "prisma migrate reset --force --skip-seed",
     "seed:permissions": "ts-node -e \"import('./prisma/seeders/permissions.seeder').then(m => m.seedPermissions(new (require('@prisma/client')).PrismaClient()))\"",
     "seed:roles": "ts-node -e \"import('./prisma/seeders/roles.seeder').then(m => m.seedRoles(new (require('@prisma/client')).PrismaClient()))\"",
     "seed:users": "ts-node -e \"import('./prisma/seeders/users.seeder').then(m => m.seedUsers(new (require('@prisma/client')).PrismaClient()))\"",
@@ -29,6 +30,7 @@
     "seed:tenants": "ts-node -e \"import('./prisma/seeders/tenants.seeder').then(m => m.seedTenants(new (require('@prisma/client')).PrismaClient()))\""
   },
   "dependencies": {
+    "@azure/communication-email": "^1.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.0.0",

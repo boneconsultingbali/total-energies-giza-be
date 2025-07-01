@@ -13,6 +13,7 @@ import {
   PaginationDto,
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
+import { EmailService } from "@/email/email.service";
 
 interface UserSearchQuery extends PaginationDto {
   role?: string;
@@ -22,7 +23,10 @@ interface UserSearchQuery extends PaginationDto {
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     // Check if user already exists
@@ -81,6 +85,17 @@ export class UserService {
       },
     });
 
+    // Send welcome email
+    const userName = user.profile?.first_name
+      ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+      : user.email;
+
+    await this.emailService.sendWelcomeEmail({
+      email: user.email,
+      name: userName,
+      temporaryPassword: createUserDto.password,
+    });
+
     const { password, ...result } = user;
     return result;
   }
@@ -96,11 +111,7 @@ export class UserService {
       active,
       q,
     } = query;
-
-    // Convert string parameters to numbers
-    const pageNum = parseInt(page.toString(), 10) || 1;
-    const limitNum = parseInt(limit.toString(), 10) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const skip = (page - 1) * limit;
 
     // Build search conditions
     const searchConditions = [];
@@ -145,41 +156,39 @@ export class UserService {
       ? { [sortBy]: sortOrder }
       : { created_at: sortOrder };
 
-    console.log("User search query:", { orderBy, where, skip, take: limitNum });
-
     const [users, total] = await Promise.all([
       this.prisma.tbm_user.findMany({
         where,
         skip,
-        take: limitNum,
+        take: limit,
         orderBy,
         include: {
-          // role: {
-          //   include: {
-          //     permissions: {
-          //       include: {
-          //         permission: true,
-          //       },
-          //     },
-          //   },
-          // },
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
           profile: true,
         },
       }),
       this.prisma.tbm_user.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limitNum);
+    const totalPages = Math.ceil(total / limit);
 
     return {
       data: users,
       meta: {
         total,
-        page: pageNum,
-        limit: limitNum,
+        page,
+        limit,
         totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     };
   }

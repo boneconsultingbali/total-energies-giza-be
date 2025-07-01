@@ -1,0 +1,16 @@
+Test Email - {{companyName}}
+
+Hello {{name}}!
+
+This is a test email to verify that our email system is working correctly.
+
+Test Details:
+Test Time: {{testTime}}
+Status: Email delivery successful ✓
+
+If you received this email, it means our email notification system is functioning properly. You can expect to receive important notifications about your account and projects.
+
+---
+This email was sent by {{companyName}}
+© {{currentYear}} {{companyName}}. All rights reserved.
+This is an automated test message, please do not reply to this email.

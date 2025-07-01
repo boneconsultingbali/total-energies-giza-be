@@ -1,0 +1,29 @@
+Welcome to {{companyName}}!
+
+Hello {{name}},
+
+Welcome to {{companyName}}! We're excited to have you on board. Your account has been successfully created and you can now access our platform.
+
+{{#if temporaryPassword}}
+Your Login Credentials:
+Email: {{email}}
+Temporary Password: {{temporaryPassword}}
+
+IMPORTANT: Please change your password after your first login for security purposes. You can do this from your profile settings.
+{{/if}}
+
+Access Your Account: {{loginUrl}}
+
+What you can do with your account:
+✓ Manage and track projects with KPI monitoring
+✓ Access performance indicators and analytics
+✓ Collaborate with team members on documents
+✓ Monitor project status and progress
+✓ Generate reports and insights
+
+If you have any questions or need assistance getting started, please don't hesitate to contact our support team at {{supportEmail}}.
+
+---
+This email was sent by {{companyName}}
+© {{currentYear}} {{companyName}}. All rights reserved.
+This is an automated message, please do not reply to this email.

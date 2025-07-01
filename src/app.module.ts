@@ -1,46 +1,49 @@
-import { Module, MiddlewareConsumer } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { WinstonModule } from 'nest-winston';
-import * as winston from 'winston';
-import { AppController } from './app.controller';
-import { PrismaModule } from './database/prisma/prisma.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { UserModule } from './modules/user/user.module';
-import { PerformanceIndicatorModule } from './modules/performance-indicator/performance-indicator.module';
-import { ProjectModule } from './modules/project/project.module';
-import { DocumentModule } from './modules/document/document.module';
-import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { Module, MiddlewareConsumer } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { WinstonModule } from "nest-winston";
+import * as winston from "winston";
+import { AppController } from "./app.controller";
+import { PrismaModule } from "./database/prisma/prisma.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { UserModule } from "./modules/user/user.module";
+import { PerformanceIndicatorModule } from "./modules/performance-indicator/performance-indicator.module";
+import { ProjectModule } from "./modules/project/project.module";
+import { DocumentModule } from "./modules/document/document.module";
+import { LoggerMiddleware } from "./common/middleware/logger.middleware";
+import { EmailModule } from "./email/email.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 10, // 10 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 10, // 10 requests per minute
+      },
+    ]),
     WinstonModule.forRoot({
-      level: 'info',
+      level: "info",
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json(),
+        winston.format.json()
       ),
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.simple(),
+            winston.format.simple()
           ),
         }),
         new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
+          filename: "logs/error.log",
+          level: "error",
         }),
         new winston.transports.File({
-          filename: 'logs/combined.log',
+          filename: "logs/combined.log",
         }),
       ],
     }),
@@ -50,13 +53,12 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     PerformanceIndicatorModule,
     ProjectModule,
     DocumentModule,
+    EmailModule,
   ],
   controllers: [AppController],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggerMiddleware)
-      .forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes("*");
   }
 }
