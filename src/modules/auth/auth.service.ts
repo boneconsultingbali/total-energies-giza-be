@@ -8,13 +8,15 @@ import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { PrismaService } from "../../database/prisma/prisma.service";
+import { EmailService } from "@/email/email.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private emailService: EmailService
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -111,6 +113,9 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.prisma.tbm_user.findUnique({
       where: { email },
+      include: {
+        profile: true,
+      },
     });
 
     if (!user || !user.is_active || user.is_deleted) {
@@ -129,9 +134,16 @@ export class AuthService {
       },
     });
 
-    // TODO: Send email with reset link
-    // For now, just log the token (remove in production)
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // Send password reset email
+    const userName = user.profile?.first_name
+      ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+      : user.email;
+
+    await this.emailService.sendPasswordResetEmail({
+      email: user.email,
+      name: userName,
+      resetToken,
+    });
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -141,6 +153,9 @@ export class AuthService {
         reset_token_expires: {
           gt: new Date(),
         },
+      },
+      include: {
+        profile: true,
       },
     });
 
@@ -160,6 +175,16 @@ export class AuthService {
         locked_until: null,
       },
     });
+
+    // Send password changed confirmation email
+    const userName = user.profile?.first_name
+      ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+      : user.email;
+
+    await this.emailService.sendPasswordChangedEmail({
+      email: user.email,
+      name: userName,
+    });
   }
 
   async changePassword(
@@ -169,6 +194,9 @@ export class AuthService {
   ) {
     const user = await this.prisma.tbm_user.findUnique({
       where: { id: userId },
+      include: {
+        profile: true,
+      },
     });
 
     if (!user) {
@@ -190,6 +218,16 @@ export class AuthService {
       data: {
         password: hashedPassword,
       },
+    });
+
+    // Send password changed confirmation email
+    const userName = user.profile?.first_name
+      ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+      : user.email;
+
+    await this.emailService.sendPasswordChangedEmail({
+      email: user.email,
+      name: userName,
     });
   }
 
@@ -221,6 +259,9 @@ export class AuthService {
 
     const user = await this.prisma.tbm_user.findUnique({
       where: { id: userId },
+      include: {
+        profile: true,
+      },
     });
 
     const newAttempts = user.login_attempts + 1;
@@ -244,6 +285,19 @@ export class AuthService {
         ? "Account locked due to too many failed attempts"
         : "Invalid password"
     );
+
+    // Send account locked email if account was locked
+    if (shouldLock) {
+      const userName = user.profile?.first_name
+        ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+        : user.email;
+
+      await this.emailService.sendAccountLockedEmail({
+        email: user.email,
+        name: userName,
+        lockDuration: `${lockTime} minutes`,
+      });
+    }
   }
 
   private async logLoginAttempt(

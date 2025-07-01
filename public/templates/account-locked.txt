@@ -1,0 +1,29 @@
+Account Temporarily Locked - {{companyName}}
+
+Hello {{name}},
+
+Your {{companyName}} account has been temporarily locked due to multiple failed login attempts. This is a security measure to protect your account.
+
+Account Lock Details:
+Lock Time: {{lockTime}}
+Duration: {{lockDuration}}
+Reason: Multiple failed login attempts
+
+What happens next?
+Your account will be automatically unlocked after {{lockDuration}}. You can then try logging in again with the correct credentials.
+
+Security Tips:
+• Make sure you're using the correct email and password
+• Check if Caps Lock is enabled
+• If you've forgotten your password, use the "Forgot Password" option
+• Contact support if you suspect unauthorized access attempts
+
+If you believe this lock was triggered in error or if you suspect unauthorized access to your account, please contact our support team immediately.
+
+Need Immediate Help?
+Contact our support team at {{supportEmail}} for assistance with your account.
+
+---
+This email was sent by {{companyName}}
+© {{currentYear}} {{companyName}}. All rights reserved.
+This is an automated message, please do not reply to this email.

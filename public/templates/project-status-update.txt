@@ -1,0 +1,24 @@
+Project Status Update - {{companyName}}
+
+Hello {{name}},
+
+We wanted to notify you that the status of your project has been updated.
+
+Project Details:
+Project Name: {{projectName}}
+Update Time: {{updateTime}}
+
+Status Change:
+{{oldStatus}} → {{newStatus}}
+
+{{#if description}}
+Update Description:
+{{description}}
+{{/if}}
+
+You can view the complete project details, timeline, and all status updates by visiting your project dashboard at: {{projectUrl}}
+
+---
+This email was sent by {{companyName}}
+© {{currentYear}} {{companyName}}. All rights reserved.
+This is an automated message, please do not reply to this email.

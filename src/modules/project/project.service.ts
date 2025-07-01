@@ -13,6 +13,7 @@ import {
   PaginationDto,
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
+import { EmailService } from "@/email/email.service";
 
 interface ProjectSearchQuery extends PaginationDto {
   status?: string;
@@ -23,7 +24,10 @@ interface ProjectSearchQuery extends PaginationDto {
 
 @Injectable()
 export class ProjectService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService
+  ) {}
 
   async create(createDto: CreateProjectDto, userId: string) {
     // Check if project code already exists
@@ -562,6 +566,22 @@ export class ProjectService {
       where: { id: projectId },
       data: { status: createStatusDto.status },
     });
+
+    // Send status update email to project owner if different from current user
+    if (project.owner && project.owner.id !== userId) {
+      const ownerName = project.owner.profile?.first_name
+        ? `${project.owner.profile.first_name} ${project.owner.profile.last_name || ""}`.trim()
+        : project.owner.email;
+
+      await this.emailService.sendProjectStatusUpdateEmail({
+        email: project.owner.email,
+        name: ownerName,
+        projectName: project.name,
+        oldStatus: project.status,
+        newStatus: createStatusDto.status,
+        description: createStatusDto.description,
+      });
+    }
 
     return status;
   }

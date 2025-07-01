@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{companyName}}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #27ae60;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+        .login-button {
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .login-button:hover {
+            background-color: #229954;
+        }
+        .credentials {
+            background-color: #e8f5e8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #27ae60;
+        }
+        .credential-item {
+            margin: 10px 0;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-radius: 3px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .features {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .feature-list li:before {
+            content: "✓ ";
+            color: #27ae60;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">{{companyName}}</div>
+            <h1 class="title">Welcome to Our Platform!</h1>
+        </div>
+
+        <div class="content">
+            <div class="greeting">Hello {{name}},</div>
+            
+            <div class="message">
+                Welcome to {{companyName}}! We're excited to have you on board. Your account has been successfully created and you can now access our platform.
+            </div>
+
+            {{#if temporaryPassword}}
+            <div class="credentials">
+                <h3>Your Login Credentials:</h3>
+                <div class="credential-item">
+                    <strong>Email:</strong> {{email}}
+                </div>
+                <div class="credential-item">
+                    <strong>Temporary Password:</strong> {{temporaryPassword}}
+                </div>
+            </div>
+
+            <div class="warning">
+                <strong>Important:</strong> Please change your password after your first login for security purposes. You can do this from your profile settings.
+            </div>
+            {{/if}}
+
+            <div style="text-align: center;">
+                <a href="{{loginUrl}}" class="login-button">Access Your Account</a>
+            </div>
+
+            <div class="features">
+                <h3>What you can do with your account:</h3>
+                <ul class="feature-list">
+                    <li>Manage and track projects with KPI monitoring</li>
+                    <li>Access performance indicators and analytics</li>
+                    <li>Collaborate with team members on documents</li>
+                    <li>Monitor project status and progress</li>
+                    <li>Generate reports and insights</li>
+                </ul>
+            </div>
+
+            <div class="message">
+                If you have any questions or need assistance getting started, please don't hesitate to contact our support team at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This email was sent by {{companyName}}</p>
+            <p>&copy; {{currentYear}} {{companyName}}. All rights reserved.</p>
+            <p>This is an automated message, please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
