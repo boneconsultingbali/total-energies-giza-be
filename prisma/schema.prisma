@@ -1,0 +1,257 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================================================================
+// USER & PROFILE DATA - These models are used to manage user accounts and their profiles.
+// =====================================================================================================================
+
+model tbm_role {
+  id          String                @id @default(cuid())
+  name        String                @unique
+  created_at  DateTime              @default(now())
+  updated_at  DateTime              @updatedAt
+  users       tbm_user[]
+  permissions tbs_role_permission[]
+
+  @@map("tbm_roles")
+}
+
+model tbm_permission {
+  id          String                @id @default(cuid())
+  name        String                @unique
+  description String?
+  created_at  DateTime              @default(now())
+  updated_at  DateTime              @updatedAt
+  roles       tbs_role_permission[]
+
+  @@map("tbm_permissions")
+}
+
+model tbs_role_permission {
+  id            String @id @default(cuid())
+  role_id       String
+  permission_id String
+
+  role       tbm_role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission tbm_permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@map("tbs_role_permissions")
+}
+
+model tbm_user {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  is_active  Boolean  @default(true)
+  is_deleted Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Password reset
+  reset_token         String?
+  reset_token_expires DateTime?
+
+  // Login tracking
+  last_login     DateTime?
+  login_attempts Int       @default(0)
+  locked_until   DateTime?
+
+  role_name String?
+  role      tbm_role? @relation(fields: [role_name], references: [name], onDelete: SetNull)
+
+  profile tbm_profile?
+
+  tenant_id String?     @unique
+  tenant    tbm_tenant? @relation("tenant_employees", fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  leader_tenants tbm_tenant[]       @relation("tenant_leader")
+  owned_projects tbm_project[]
+  login_logs     tbm_login_log[]
+  user_sessions  tbm_user_session[]
+
+  @@map("tbm_users")
+}
+
+model tbm_profile {
+  id          String    @id @default(cuid())
+  first_name  String?
+  last_name   String?
+  avatar      String?
+  phone       String?
+  birth_date  DateTime?
+  gender      String?
+  country     String?
+  city        String?
+  address     String?
+  postal_code String?
+  preferences Json? // User preferences
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  user_id String   @unique
+  user    tbm_user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("tbm_profiles")
+}
+
+model tbm_tenant {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String?
+  country    String?
+  address    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  leader_id String?
+  leader    tbm_user? @relation("tenant_leader", fields: [leader_id], references: [id], onDelete: Cascade)
+
+  employees tbm_user[]     @relation("tenant_employees")
+  documents tbm_document[]
+  projects  tbm_project[]
+
+  @@map("tbm_tenants")
+}
+
+// =====================================================================================================================
+// SECURITY & LOGGING MODELS
+// =====================================================================================================================
+
+model tbm_login_log {
+  id         String   @id @default(cuid())
+  user_id    String
+  ip_address String?
+  user_agent String?
+  success    Boolean
+  reason     String? // Failed login reason
+  created_at DateTime @default(now())
+
+  user tbm_user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("tbm_login_logs")
+}
+
+model tbm_user_session {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user tbm_user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("tbm_user_sessions")
+}
+
+// =====================================================================================================================
+// GLOBAL DATA - These models are used to manage global data that is not specific to any tenant or user.
+// =====================================================================================================================
+
+model tbm_document {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  content     String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  tenant_id String?
+  tenant    tbm_tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  project_id String?
+  project    tbm_project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("tbm_documents")
+}
+
+// =====================================================================================================================
+// SETUP DATA - These models are used to manage setup data that is used across the application.
+// =====================================================================================================================
+
+model tbm_performance_indicator {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  parent_id String?
+  parent    tbm_performance_indicator?  @relation("indicator_parent", fields: [parent_id], references: [id], onDelete: Cascade)
+  children  tbm_performance_indicator[] @relation("indicator_parent")
+
+  projects tbs_project_performance_indicator[]
+
+  @@map("tbm_performance_indicators")
+}
+
+// =====================================================================================================================
+// MAIN DATA - These models are used to manage the main data of the application.
+// =====================================================================================================================
+
+model tbm_project {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  description String?   @db.Text
+  start_date  DateTime?
+  end_date    DateTime?
+  status      String?
+  score       Float?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  tenant_id String?
+  tenant    tbm_tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  owner_id String?
+  owner    tbm_user? @relation(fields: [owner_id], references: [id], onDelete: SetNull)
+
+  statuses   tbs_project_status[]
+  indicators tbs_project_performance_indicator[]
+  documents  tbm_document[]
+
+  @@map("tbm_projects")
+}
+
+model tbs_project_performance_indicator {
+  id           String   @id @default(cuid())
+  project_id   String
+  indicator_id String
+  score        Float?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  project   tbm_project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  indicator tbm_performance_indicator @relation(fields: [indicator_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, indicator_id])
+  @@map("tbs_project_performance_indicators")
+}
+
+model tbs_project_status {
+  id          String   @id @default(cuid())
+  status      String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  project_id String
+  project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("tbs_project_status")
+}

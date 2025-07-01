@@ -1,0 +1,837 @@
+{
+  "info": {
+    "name": "NestJS User Management API",
+    "description": "Complete API collection for user management, projects, KPIs, and documents",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', response.data.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"admin123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Login History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/login-history",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login-history"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role_name\": \"user\",\n  \"is_active\": true,\n  \"profile\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"+1-555-0123\",\n    \"country\": \"United States\",\n    \"city\": \"New York\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"updated@example.com\",\n  \"role_name\": \"admin\",\n  \"is_active\": true,\n  \"profile\": {\n    \"first_name\": \"Updated\",\n    \"last_name\": \"Name\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/:userId/activate",
+              "host": ["{{base_url}}"],
+              "path": ["users", ":userId", "activate"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/:userId/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["users", ":userId", "deactivate"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "user-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/roles/available",
+              "host": ["{{base_url}}"],
+              "path": ["users", "roles", "available"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance Indicators",
+      "item": [
+        {
+          "name": "Create Performance Indicator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Production Efficiency\",\n  \"description\": \"Measure production efficiency metrics\",\n  \"parent_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/performance-indicators",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators"]
+            }
+          }
+        },
+        {
+          "name": "Get Performance Indicators",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "parent_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "has_parent",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Indicator Hierarchy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/hierarchy",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", "hierarchy"]
+            }
+          }
+        },
+        {
+          "name": "Get Indicator Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", "statistics"]
+            }
+          }
+        },
+        {
+          "name": "Get Available Parents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/available-parents",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", "available-parents"],
+              "query": [
+                {
+                  "key": "exclude",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Performance Indicator by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/:indicatorId",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", ":indicatorId"],
+              "variable": [
+                {
+                  "key": "indicatorId",
+                  "value": "indicator-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Performance Indicator",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Indicator Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/:indicatorId",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", ":indicatorId"],
+              "variable": [
+                {
+                  "key": "indicatorId",
+                  "value": "indicator-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Performance Indicator",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/performance-indicators/:indicatorId",
+              "host": ["{{base_url}}"],
+              "path": ["performance-indicators", ":indicatorId"],
+              "variable": [
+                {
+                  "key": "indicatorId",
+                  "value": "indicator-id-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"PROJ001\",\n  \"name\": \"Digital Transformation\",\n  \"description\": \"Company-wide digital transformation initiative\",\n  \"start_date\": \"2024-01-01\",\n  \"end_date\": \"2024-12-31\",\n  \"status\": \"Planning\",\n  \"tenant_id\": null,\n  \"indicators\": [\n    {\n      \"indicator_id\": \"indicator-id-here\",\n      \"score\": 75\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": ["{{base_url}}"],
+              "path": ["projects"]
+            }
+          }
+        },
+        {
+          "name": "Get Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "owner_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/statistics",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "statistics"]
+            }
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Project Name\",\n  \"status\": \"In Progress\",\n  \"score\": 85\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Project Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"In Progress\",\n  \"description\": \"Development phase started\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId/statuses",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId", "statuses"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId/statuses",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId", "statuses"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update KPI Score",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 85\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/:projectId/indicators/:indicatorId/score",
+              "host": ["{{base_url}}"],
+              "path": ["projects", ":projectId", "indicators", ":indicatorId", "score"],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "project-id-here"
+                },
+                {
+                  "key": "indicatorId",
+                  "value": "indicator-id-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Create Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project Requirements\",\n  \"description\": \"Detailed project requirements document\",\n  \"content\": \"Document content here...\",\n  \"tenant_id\": null,\n  \"project_id\": \"project-id-here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["documents"]
+            }
+          }
+        },
+        {
+          "name": "Get Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/documents?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["documents"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "project_id",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Document by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/documents/:documentId",
+              "host": ["{{base_url}}"],
+              "path": ["documents", ":documentId"],
+              "variable": [
+                {
+                  "key": "documentId",
+                  "value": "document-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Document",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Document Name\",\n  \"description\": \"Updated description\",\n  \"content\": \"Updated content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/:documentId",
+              "host": ["{{base_url}}"],
+              "path": ["documents", ":documentId"],
+              "variable": [
+                {
+                  "key": "documentId",
+                  "value": "document-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/documents/:documentId",
+              "host": ["{{base_url}}"],
+              "path": ["documents", ":documentId"],
+              "variable": [
+                {
+                  "key": "documentId",
+                  "value": "document-id-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
