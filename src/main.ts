@@ -38,6 +38,11 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // welcome message by return public/index.html
+  app.getHttpAdapter().get("/", (req, res) => {
+    res.sendFile("index.html", { root: "public" });
+  });
+
   // Global prefix
   app.setGlobalPrefix("api/v1");
 
