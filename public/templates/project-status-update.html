@@ -1,177 +1,175 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Status Update</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #3498db;
-        }
-        .logo {
+  </head>
+  <body
+    style="
+      font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    "
+  >
+    <div
+      style="
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        style="
+          text-align: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #3498db;
+        "
+      >
+        <div
+          style="
             font-size: 24px;
             font-weight: bold;
             color: #3498db;
             margin-bottom: 10px;
-        }
-        .title {
-            color: #2c3e50;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        .project-icon {
-            font-size: 48px;
-            color: #3498db;
-            margin-bottom: 20px;
-        }
-        .content {
-            margin-bottom: 30px;
-        }
-        .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 25px;
-            line-height: 1.8;
-        }
-        .project-info {
+          "
+        >
+          {{companyName}}
+        </div>
+        <div style="font-size: 48px; color: #3498db; margin-bottom: 20px">
+          📊
+        </div>
+        <h1 style="color: #2c3e50; font-size: 28px; margin-bottom: 10px">
+          Project Status Update
+        </h1>
+      </div>
+
+      <div style="margin-bottom: 30px">
+        <div style="font-size: 18px; margin-bottom: 20px; color: #2c3e50">
+          Hello {{name}},
+        </div>
+
+        <div style="font-size: 16px; margin-bottom: 25px; line-height: 1.8">
+          We wanted to notify you that the status of your project has been
+          updated.
+        </div>
+
+        <div
+          style="
             background-color: #e8f4fd;
             padding: 20px;
             border-radius: 5px;
             margin: 20px 0;
             border-left: 4px solid #3498db;
-        }
-        .status-change {
+          "
+        >
+          <h3>Project Details:</h3>
+          <strong>Project Name:</strong> {{projectName}}<br />
+          <strong>Update Time:</strong> {{updateTime}}
+        </div>
+
+        <div
+          style="
             background-color: #f8f9fa;
             padding: 20px;
             border-radius: 5px;
             margin: 20px 0;
             text-align: center;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin: 0 10px;
-        }
-        .status-old {
-            background-color: #ecf0f1;
-            color: #7f8c8d;
-        }
-        .status-new {
-            background-color: #27ae60;
-            color: white;
-        }
-        .arrow {
-            font-size: 24px;
-            color: #3498db;
-            margin: 0 10px;
-        }
-        .description-box {
+          "
+        >
+          <h3>Status Change:</h3>
+          <div style="margin: 20px 0">
+            <span
+              style="
+                display: inline-block;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-weight: bold;
+                margin: 0 10px;
+                background-color: #ecf0f1;
+                color: #7f8c8d;
+              "
+              >{{oldStatus}}</span
+            >
+            <span style="font-size: 24px; color: #3498db; margin: 0 10px"
+              >→</span
+            >
+            <span
+              style="
+                display: inline-block;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-weight: bold;
+                margin: 0 10px;
+                background-color: #27ae60;
+                color: white;
+              "
+              >{{newStatus}}</span
+            >
+          </div>
+        </div>
+
+        {{#if description}}
+        <div
+          style="
             background-color: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
             margin: 15px 0;
             font-style: italic;
-        }
-        .view-button {
-            display: inline-block;
-            background-color: #3498db;
-            color: white;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 16px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .view-button:hover {
-            background-color: #2980b9;
-        }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ecf0f1;
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">{{companyName}}</div>
-            <div class="project-icon">📊</div>
-            <h1 class="title">Project Status Update</h1>
+          "
+        >
+          <strong>Update Description:</strong><br />
+          {{description}}
+        </div>
+        {{/if}}
+
+        <div style="text-align: center">
+          <a
+            href="{{projectUrl}}"
+            style="
+              display: inline-block;
+              background-color: #3498db;
+              color: white;
+              padding: 15px 30px;
+              text-decoration: none;
+              border-radius: 5px;
+              font-weight: bold;
+              font-size: 16px;
+              margin: 20px 0;
+              text-align: center;
+            "
+            >View Project Details</a
+          >
         </div>
 
-        <div class="content">
-            <div class="greeting">Hello {{name}},</div>
-            
-            <div class="message">
-                We wanted to notify you that the status of your project has been updated.
-            </div>
-
-            <div class="project-info">
-                <h3>Project Details:</h3>
-                <strong>Project Name:</strong> {{projectName}}<br>
-                <strong>Update Time:</strong> {{updateTime}}
-            </div>
-
-            <div class="status-change">
-                <h3>Status Change:</h3>
-                <div style="margin: 20px 0;">
-                    <span class="status-badge status-old">{{oldStatus}}</span>
-                    <span class="arrow">→</span>
-                    <span class="status-badge status-new">{{newStatus}}</span>
-                </div>
-            </div>
-
-            {{#if description}}
-            <div class="description-box">
-                <strong>Update Description:</strong><br>
-                {{description}}
-            </div>
-            {{/if}}
-
-            <div style="text-align: center;">
-                <a href="{{projectUrl}}" class="view-button">View Project Details</a>
-            </div>
-
-            <div class="message">
-                You can view the complete project details, timeline, and all status updates by clicking the button above or visiting your project dashboard.
-            </div>
+        <div style="font-size: 16px; margin-bottom: 25px; line-height: 1.8">
+          You can view the complete project details, timeline, and all status
+          updates by clicking the button above or visiting your project
+          dashboard.
         </div>
+      </div>
 
-        <div class="footer">
-            <p>This email was sent by {{companyName}}</p>
-            <p>&copy; {{currentYear}} {{companyName}}. All rights reserved.</p>
-            <p>This is an automated message, please do not reply to this email.</p>
-        </div>
+      <div
+        style="
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #ecf0f1;
+          text-align: center;
+          color: #7f8c8d;
+          font-size: 14px;
+        "
+      >
+        <p>This email was sent by {{companyName}}</p>
+        <p>&copy; {{currentYear}} {{companyName}}. All rights reserved.</p>
+        <p>This is an automated message, please do not reply to this email.</p>
+      </div>
     </div>
-</body>
+  </body>
 </html>
