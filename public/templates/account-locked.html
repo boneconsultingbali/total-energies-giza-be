@@ -4,121 +4,95 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Account Temporarily Locked</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f4f4f4;
-      }
-      .container {
+  </head>
+  <body
+    style="
+      font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    "
+  >
+    <div
+      style="
         background-color: #ffffff;
         padding: 40px;
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-      .header {
-        text-align: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid #f39c12;
-      }
-      .logo {
-        font-size: 24px;
-        font-weight: bold;
-        color: #f39c12;
-        margin-bottom: 10px;
-      }
-      .title {
-        color: #2c3e50;
-        font-size: 28px;
-        margin-bottom: 10px;
-      }
-      .warning-icon {
-        font-size: 48px;
-        color: #f39c12;
-        margin-bottom: 20px;
-      }
-      .content {
-        margin-bottom: 30px;
-      }
-      .greeting {
-        font-size: 18px;
-        margin-bottom: 20px;
-        color: #2c3e50;
-      }
-      .message {
-        font-size: 16px;
-        margin-bottom: 25px;
-        line-height: 1.8;
-      }
-      .warning-box {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 20px;
-        border-radius: 5px;
-        margin: 20px 0;
-        border-left: 4px solid #f39c12;
-      }
-      .info-box {
-        background-color: #e8f4fd;
-        padding: 20px;
-        border-radius: 5px;
-        margin: 20px 0;
-        border-left: 4px solid #3498db;
-      }
-      .footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid #ecf0f1;
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 14px;
-      }
-      .support-info {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 5px;
-        margin: 20px 0;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="logo">{{companyName}}</div>
-        <div class="warning-icon">⚠️</div>
-        <h1 class="title">Account Temporarily Locked</h1>
+      "
+    >
+      <div
+        style="
+          text-align: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #f39c12;
+        "
+      >
+        <div
+          style="
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 10px;
+          "
+        >
+          {{companyName}}
+        </div>
+        <div style="font-size: 48px; color: #f39c12; margin-bottom: 20px">
+          ⚠️
+        </div>
+        <h1 style="color: #2c3e50; font-size: 28px; margin-bottom: 10px">
+          Account Temporarily Locked
+        </h1>
       </div>
 
-      <div class="content">
-        <div class="greeting">Hello {{name}},</div>
+      <div style="margin-bottom: 30px">
+        <div style="font-size: 18px; margin-bottom: 20px; color: #2c3e50">
+          Hello {{name}},
+        </div>
 
-        <div class="message">
+        <div style="font-size: 16px; margin-bottom: 25px; line-height: 1.8">
           Your {{companyName}} account has been temporarily locked due to
           multiple failed login attempts. This is a security measure to protect
           your account.
         </div>
 
-        <div class="warning-box">
+        <div
+          style="
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #f39c12;
+          "
+        >
           <strong>Account Lock Details:</strong><br />
           Lock Time: {{lockTime}}<br />
           Duration: {{lockDuration}}<br />
           Reason: Multiple failed login attempts
         </div>
 
-        <div class="info-box">
+        <div
+          style="
+            background-color: #e8f4fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+          "
+        >
           <strong>What happens next?</strong><br />
           Your account will be automatically unlocked after {{lockDuration}}.
           You can then try logging in again with the correct credentials.
         </div>
 
-        <div class="message">
+        <div style="font-size: 16px; margin-bottom: 25px; line-height: 1.8">
           <strong>Security Tips:</strong>
           <ul>
             <li>Make sure you're using the correct email and password</li>
@@ -131,13 +105,21 @@
           </ul>
         </div>
 
-        <div class="message">
+        <div style="font-size: 16px; margin-bottom: 25px; line-height: 1.8">
           If you believe this lock was triggered in error or if you suspect
           unauthorized access to your account, please contact our support team
           immediately.
         </div>
 
-        <div class="support-info">
+        <div
+          style="
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+          "
+        >
           <strong>Need Immediate Help?</strong><br />
           Contact our support team at
           <a href="mailto:{{supportEmail}}">{{supportEmail}}</a> for assistance
@@ -145,7 +127,16 @@
         </div>
       </div>
 
-      <div class="footer">
+      <div
+        style="
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #ecf0f1;
+          text-align: center;
+          color: #7f8c8d;
+          font-size: 14px;
+        "
+      >
         <p>This email was sent by {{companyName}}</p>
         <p>&copy; {{currentYear}} {{companyName}}. All rights reserved.</p>
         <p>This is an automated message, please do not reply to this email.</p>

@@ -33,9 +33,17 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   // CORS
-  app.enableCors({
-    origin: [configService.get("FRONTEND_URL", "http://localhost:3000")],
-    credentials: true,
+  // app.enableCors({
+  //   origin: [configService.get("FRONTEND_URL", "http://localhost:3000")],
+  //   credentials: true,
+  // });
+
+  // CORS allow all
+  app.enableCors();
+
+  // Welcome message by return public/index.html
+  app.getHttpAdapter().get("/", (req, res) => {
+    res.sendFile("index.html", { root: "public" });
   });
 
   // Global prefix
