@@ -42,9 +42,13 @@ export class UserController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string, @Request() req) {
+  async findOne(@Param("id") id: string, @Request() req) {
     this.checkPermission(req.user, "user:read");
-    return this.userService.findOne(id);
+    const result = await this.userService.findOne(id);
+
+    console.log("UserController.findOne result:", result);
+
+    return result;
   }
 
   @Patch(":id")
