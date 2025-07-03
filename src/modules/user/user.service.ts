@@ -111,7 +111,10 @@ export class UserService {
       active,
       q,
     } = query;
-    const skip = (page - 1) * limit;
+    // Convert to numbers to avoid Prisma error
+    const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
+    const limitNum = typeof limit === "string" ? parseInt(limit, 10) : limit;
+    const skip = (pageNum - 1) * limitNum;
 
     // Build search conditions
     const searchConditions = [];
@@ -160,35 +163,26 @@ export class UserService {
       this.prisma.tbm_user.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy,
         include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
           profile: true,
         },
       }),
       this.prisma.tbm_user.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limitNum);
 
     return {
       data: users,
       meta: {
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
       },
     };
   }
