@@ -23,12 +23,14 @@ export class ResponseInterceptor<T>
     next: CallHandler
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map(({ meta, data, ...other }) => ({
-        success: true,
-        ...(meta ? { meta } : {}),
-        data: data ? data : other,
-        timestamp: new Date().toISOString(),
-      }))
+      map((responseData: any) => {
+        return {
+          success: true,
+          timestamp: new Date().toISOString(),
+          ...(responseData.meta ? { meta: responseData.meta } : {}),
+          data: responseData.data ?? responseData,
+        };
+      })
     );
   }
 }
