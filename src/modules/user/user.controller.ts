@@ -25,6 +25,11 @@ import { UserInterceptor } from "./user.interceptor";
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get("code/:id")
+  async validateCode(@Param("id") id: string) {
+    return this.userService.checkExistingCode(id);
+  }
+
   @Post()
   create(@Body() createUserDto: CreateUserDto, @Request() req) {
     this.checkPermission(req.user, "user:create");

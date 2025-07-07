@@ -37,6 +37,8 @@ export class UserService {
     });
 
     if (existingCode) throw new ConflictException("Code already exists");
+
+    return true;
   }
 
   async create(createUserDto: CreateUserDto) {
