@@ -13,6 +13,7 @@ import { DocumentModule } from "./modules/document/document.module";
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { EmailModule } from "./email/email.module";
 import { TenantModule } from './modules/tenant/tenant.module';
+import { ThirdPartyModule } from './modules/third-party/third-party.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
     DocumentModule,
     EmailModule,
     TenantModule,
+    ThirdPartyModule,
   ],
   controllers: [AppController],
 })
