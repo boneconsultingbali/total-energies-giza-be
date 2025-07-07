@@ -7,48 +7,14 @@ import {
   ValidateNested,
   IsDateString,
   IsIn,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { PartialType } from "@nestjs/mapped-types";
+import { CreateProfileDto, CreateUserDto } from "./create-user.dto";
 
-export class UpdateProfileDto {
-  @IsOptional()
-  @IsString()
-  first_name?: string;
+export class UpdateProfileDto extends PartialType(CreateProfileDto) {}
 
-  @IsOptional()
-  @IsString()
-  last_name?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsDateString()
-  birth_date?: string;
-
-  @IsOptional()
-  @IsString()
-  gender?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  postal_code?: string;
-}
-
-export class UpdateUserDto {
+export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -60,7 +26,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['admin', 'user']) // Cannot update to superadmin
+  @IsIn(["admin", "user"]) // Cannot update to superadmin
   role_name?: string;
 
   @IsOptional()
