@@ -7,8 +7,8 @@ import {
   ValidateNested,
   IsDateString,
   IsIn,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateProfileDto {
   @IsOptional()
@@ -49,6 +49,10 @@ export class CreateProfileDto {
 }
 
 export class CreateUserDto {
+  @IsOptional()
+  @IsString()
+  code?: string;
+
   @IsEmail()
   email: string;
 
@@ -58,7 +62,7 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['superadmin', 'admin', 'user'])
+  @IsIn(["superadmin", "admin", "user"])
   role_name?: string;
 
   @IsOptional()

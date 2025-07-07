@@ -53,7 +53,9 @@ model tbs_role_permission {
 }
 
 model tbm_user {
-  id         String   @id @default(cuid())
+  id   String  @id @default(cuid())
+  code String? @unique
+
   email      String   @unique
   password   String
   is_active  Boolean  @default(true)

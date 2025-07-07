@@ -28,8 +28,23 @@ export class UserService {
     private emailService: EmailService
   ) {}
 
+  async checkExistingCode(code: string, previous_code?: string) {
+    if (code === previous_code) return;
+
+    // Check if the new code already exists in the database
+    const existingCode = await this.prisma.tbm_user.findUnique({
+      where: { code },
+    });
+
+    if (existingCode) throw new ConflictException("Code already exists");
+
+    return true;
+  }
+
   async create(createUserDto: CreateUserDto) {
     // Check if user already exists
+    this.checkExistingCode(createUserDto.code);
+
     const existingUser = await this.prisma.tbm_user.findUnique({
       where: { email: createUserDto.email },
     });
@@ -61,6 +76,7 @@ export class UserService {
     // Create user with profile
     const user = await this.prisma.tbm_user.create({
       data: {
+        code: createUserDto.code,
         email: createUserDto.email,
         password: hashedPassword,
         role_name: createUserDto.role_name || "user", // Default to user role
@@ -208,10 +224,6 @@ export class UserService {
       throw new NotFoundException("User not found");
     }
 
-    console.log("UserService.findOne:", {
-      user,
-    });
-
     return user;
   }
 
@@ -222,6 +234,9 @@ export class UserService {
     if (user.role_name === "superadmin") {
       throw new ForbiddenException("Superadmin users cannot be modified");
     }
+
+    // Check existing code
+    this.checkExistingCode(updateUserDto.code, user.code);
 
     // Validate role if provided
     if (updateUserDto.role_name) {
@@ -247,6 +262,7 @@ export class UserService {
     const updatedUser = await this.prisma.tbm_user.update({
       where: { id },
       data: {
+        ...(updateUserDto.code && { code: updateUserDto.code }),
         ...(updateUserDto.email && { email: updateUserDto.email }),
         ...(hashedPassword && { password: hashedPassword }),
         ...(updateUserDto.role_name !== undefined && {

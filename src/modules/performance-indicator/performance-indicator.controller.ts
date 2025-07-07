@@ -41,7 +41,9 @@ export class PerformanceIndicatorController {
     @Request() req
   ) {
     this.checkAdminPermission(req.user);
-    return this.performanceIndicatorService.findAll(query);
+    const result = this.performanceIndicatorService.findAll(query);
+
+    return result;
   }
 
   @Get("hierarchy")

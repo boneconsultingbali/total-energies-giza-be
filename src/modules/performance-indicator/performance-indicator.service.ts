@@ -84,7 +84,10 @@ export class PerformanceIndicatorService {
       has_parent,
       q,
     } = query;
-    const skip = (page - 1) * limit;
+    // Convert to numbers to avoid Prisma error
+    const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
+    const limitNum = typeof limit === "string" ? parseInt(limit, 10) : limit;
+    const skip = (pageNum - 1) * limitNum;
 
     // Build search conditions
     const searchConditions = [];
@@ -124,7 +127,7 @@ export class PerformanceIndicatorService {
       this.prisma.tbm_performance_indicator.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy,
         include: {
           parent: {
@@ -151,17 +154,17 @@ export class PerformanceIndicatorService {
       this.prisma.tbm_performance_indicator.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limitNum);
 
     return {
       data: indicators,
       meta: {
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
       },
     };
   }
