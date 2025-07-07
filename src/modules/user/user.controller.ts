@@ -46,8 +46,6 @@ export class UserController {
     this.checkPermission(req.user, "user:read");
     const result = await this.userService.findOne(id);
 
-    console.log("UserController.findOne result:", result);
-
     return result;
   }
 
