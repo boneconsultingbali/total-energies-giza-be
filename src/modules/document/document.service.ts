@@ -3,11 +3,15 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '../../database/prisma/prisma.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { UpdateDocumentDto } from './dto/update-document.dto';
-import { PaginationDto, PaginatedResult } from '../../common/dto/pagination.dto';
+} from "@nestjs/common";
+import { PrismaService } from "../../database/prisma/prisma.service";
+import { CreateDocumentDto } from "./dto/create-document.dto";
+import { UpdateDocumentDto } from "./dto/update-document.dto";
+import {
+  PaginationDto,
+  PaginatedResult,
+} from "../../common/dto/pagination.dto";
+import { AzureBlobStorageService } from "../../storage/azure-blob-storage/azure-blob-storage.service";
 
 interface DocumentSearchQuery extends PaginationDto {
   tenant_id?: string;
@@ -17,7 +21,10 @@ interface DocumentSearchQuery extends PaginationDto {
 
 @Injectable()
 export class DocumentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private azureBlobStorageService: AzureBlobStorageService
+  ) {}
 
   async create(createDto: CreateDocumentDto, userId: string, userRole: string) {
     // Validate tenant exists if provided
@@ -26,14 +33,17 @@ export class DocumentService {
         where: { id: createDto.tenant_id },
       });
       if (!tenant) {
-        throw new BadRequestException('Tenant not found');
+        throw new BadRequestException("Tenant not found");
       }
 
       // Check access for regular users
-      if (userRole === 'user') {
-        const hasAccess = await this.checkUserTenantAccess(userId, createDto.tenant_id);
+      if (userRole === "user") {
+        const hasAccess = await this.checkUserTenantAccess(
+          userId,
+          createDto.tenant_id
+        );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to this tenant');
+          throw new ForbiddenException("Access denied to this tenant");
         }
       }
     }
@@ -45,15 +55,17 @@ export class DocumentService {
         include: { tenant: true },
       });
       if (!project) {
-        throw new BadRequestException('Project not found');
+        throw new BadRequestException("Project not found");
       }
 
       // Check access for regular users
-      if (userRole === 'user') {
-        const hasAccess = project.owner_id === userId || 
-          (project.tenant_id && await this.checkUserTenantAccess(userId, project.tenant_id));
+      if (userRole === "user") {
+        const hasAccess =
+          project.owner_id === userId ||
+          (project.tenant_id &&
+            (await this.checkUserTenantAccess(userId, project.tenant_id)));
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to this project');
+          throw new ForbiddenException("Access denied to this project");
         }
       }
     }
@@ -81,23 +93,39 @@ export class DocumentService {
     return document;
   }
 
-  async findAll(query: DocumentSearchQuery, userId: string, userRole: string): Promise<PaginatedResult<any>> {
-    const { page = 1, limit = 10, search, sortBy, sortOrder = 'desc', tenant_id, project_id, q } = query;
-    const skip = (page - 1) * limit;
+  async findAll(
+    query: DocumentSearchQuery,
+    userId: string,
+    userRole: string
+  ): Promise<PaginatedResult<any>> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy,
+      sortOrder = "desc",
+      tenant_id,
+      project_id,
+      q,
+    } = query;
+    // Convert to numbers to avoid Prisma error
+    const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
+    const limitNum = typeof limit === "string" ? parseInt(limit, 10) : limit;
+    const skip = (pageNum - 1) * limitNum;
 
     // Build search conditions
     const searchConditions = [];
-    
+
     // Handle general search
     const searchTerm = q || search;
     if (searchTerm) {
       searchConditions.push({
         OR: [
-          { name: { contains: searchTerm, mode: 'insensitive' } },
-          { description: { contains: searchTerm, mode: 'insensitive' } },
-          { content: { contains: searchTerm, mode: 'insensitive' } },
-          { tenant: { name: { contains: searchTerm, mode: 'insensitive' } } },
-          { project: { name: { contains: searchTerm, mode: 'insensitive' } } },
+          { name: { contains: searchTerm, mode: "insensitive" } },
+          { description: { contains: searchTerm, mode: "insensitive" } },
+          { content: { contains: searchTerm, mode: "insensitive" } },
+          { tenant: { name: { contains: searchTerm, mode: "insensitive" } } },
+          { project: { name: { contains: searchTerm, mode: "insensitive" } } },
         ],
       });
     }
@@ -113,7 +141,7 @@ export class DocumentService {
     }
 
     // Role-based access control
-    if (userRole === 'user') {
+    if (userRole === "user") {
       searchConditions.push({
         OR: [
           { project: { owner_id: userId } },
@@ -124,13 +152,15 @@ export class DocumentService {
     }
 
     const where = searchConditions.length > 0 ? { AND: searchConditions } : {};
-    const orderBy = sortBy ? { [sortBy]: sortOrder } : { created_at: sortOrder };
+    const orderBy = sortBy
+      ? { [sortBy]: sortOrder }
+      : { created_at: sortOrder };
 
     const [documents, total] = await Promise.all([
       this.prisma.tbm_document.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy,
         include: {
           tenant: {
@@ -152,17 +182,17 @@ export class DocumentService {
       this.prisma.tbm_document.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limitNum);
 
     return {
       data: documents,
       meta: {
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
       },
     };
   }
@@ -193,29 +223,42 @@ export class DocumentService {
     });
 
     if (!document) {
-      throw new NotFoundException('Document not found');
+      throw new NotFoundException("Document not found");
     }
 
     // Role-based access control
-    if (userRole === 'user') {
+    if (userRole === "user") {
       let hasAccess = false;
-      
+
       if (document.project) {
-        hasAccess = document.project.owner_id === userId || 
-          (document.project.tenant_id && await this.checkUserTenantAccess(userId, document.project.tenant_id));
+        hasAccess =
+          document.project.owner_id === userId ||
+          (document.project.tenant_id &&
+            (await this.checkUserTenantAccess(
+              userId,
+              document.project.tenant_id
+            )));
       } else if (document.tenant_id) {
-        hasAccess = await this.checkUserTenantAccess(userId, document.tenant_id);
+        hasAccess = await this.checkUserTenantAccess(
+          userId,
+          document.tenant_id
+        );
       }
-      
+
       if (!hasAccess) {
-        throw new ForbiddenException('Access denied to this document');
+        throw new ForbiddenException("Access denied to this document");
       }
     }
 
     return document;
   }
 
-  async update(id: string, updateDto: UpdateDocumentDto, userId: string, userRole: string) {
+  async update(
+    id: string,
+    updateDto: UpdateDocumentDto,
+    userId: string,
+    userRole: string
+  ) {
     const document = await this.findOne(id, userId, userRole);
 
     // Validate tenant exists if provided
@@ -224,14 +267,17 @@ export class DocumentService {
         where: { id: updateDto.tenant_id },
       });
       if (!tenant) {
-        throw new BadRequestException('Tenant not found');
+        throw new BadRequestException("Tenant not found");
       }
 
       // Check access for regular users
-      if (userRole === 'user') {
-        const hasAccess = await this.checkUserTenantAccess(userId, updateDto.tenant_id);
+      if (userRole === "user") {
+        const hasAccess = await this.checkUserTenantAccess(
+          userId,
+          updateDto.tenant_id
+        );
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to this tenant');
+          throw new ForbiddenException("Access denied to this tenant");
         }
       }
     }
@@ -242,17 +288,29 @@ export class DocumentService {
         where: { id: updateDto.project_id },
       });
       if (!project) {
-        throw new BadRequestException('Project not found');
+        throw new BadRequestException("Project not found");
       }
 
       // Check access for regular users
-      if (userRole === 'user') {
-        const hasAccess = project.owner_id === userId || 
-          (project.tenant_id && await this.checkUserTenantAccess(userId, project.tenant_id));
+      if (userRole === "user") {
+        const hasAccess =
+          project.owner_id === userId ||
+          (project.tenant_id &&
+            (await this.checkUserTenantAccess(userId, project.tenant_id)));
         if (!hasAccess) {
-          throw new ForbiddenException('Access denied to this project');
+          throw new ForbiddenException("Access denied to this project");
         }
       }
+    }
+
+    // Handle file replacement if new content is provided
+    if (
+      updateDto.content &&
+      document.content &&
+      document.content !== updateDto.content
+    ) {
+      // Delete old file from Azure Blob Storage
+      await this.azureBlobStorageService.deleteFile(document.content);
     }
 
     const updatedDocument = await this.prisma.tbm_document.update({
@@ -280,21 +338,29 @@ export class DocumentService {
   }
 
   async remove(id: string, userId: string, userRole: string) {
-    await this.findOne(id, userId, userRole);
+    const document = await this.findOne(id, userId, userRole);
+
+    // Delete file from Azure Blob Storage if it exists
+    if (document.content) {
+      await this.azureBlobStorageService.deleteFile(document.content);
+    }
 
     await this.prisma.tbm_document.delete({
       where: { id },
     });
 
-    return { message: 'Document deleted successfully' };
+    return { message: "Document deleted successfully" };
   }
 
-  private async checkUserTenantAccess(userId: string, tenantId: string): Promise<boolean> {
+  private async checkUserTenantAccess(
+    userId: string,
+    tenantId: string
+  ): Promise<boolean> {
     const user = await this.prisma.tbm_user.findUnique({
       where: { id: userId },
       select: { tenant_id: true },
     });
-    
+
     return user?.tenant_id === tenantId;
   }
 }
