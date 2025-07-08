@@ -27,7 +27,13 @@ export class UserController {
 
   @Get("code/:id")
   async validateCode(@Param("id") id: string) {
-    return this.userService.checkExistingCode(id);
+    const isValid = await this.userService.checkExistingCode(id);
+
+    if (!isValid) {
+      throw new ForbiddenException("Invalid or already used code");
+    }
+
+    return { valid: true, message: "Code is valid" };
   }
 
   @Post()
