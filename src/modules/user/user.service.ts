@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
 } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -36,14 +37,17 @@ export class UserService {
       where: { code },
     });
 
-    if (existingCode) throw new ConflictException("Code already exists");
+    if (existingCode) return false;
 
     return true;
   }
 
   async create(createUserDto: CreateUserDto) {
     // Check if user already exists
-    this.checkExistingCode(createUserDto.code);
+    const isCodeUnique = await this.checkExistingCode(createUserDto.code);
+    if (!isCodeUnique) {
+      throw new ConflictException("Code already exists");
+    }
 
     const existingUser = await this.prisma.tbm_user.findUnique({
       where: { email: createUserDto.email },
@@ -236,7 +240,13 @@ export class UserService {
     }
 
     // Check existing code
-    this.checkExistingCode(updateUserDto.code, user.code);
+    const isCodeUnique = await this.checkExistingCode(
+      updateUserDto.code,
+      user.code
+    );
+    if (!isCodeUnique) {
+      throw new ConflictException("Code already exists");
+    }
 
     // Validate role if provided
     if (updateUserDto.role_name) {
