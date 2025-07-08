@@ -12,8 +12,9 @@ import { ProjectModule } from "./modules/project/project.module";
 import { DocumentModule } from "./modules/document/document.module";
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { EmailModule } from "./email/email.module";
-import { TenantModule } from './modules/tenant/tenant.module';
-import { ThirdPartyModule } from './modules/third-party/third-party.module';
+import { TenantModule } from "./modules/tenant/tenant.module";
+import { ThirdPartyModule } from "./modules/third-party/third-party.module";
+import { AzureBlobStorageModule } from "./storage/azure-blob-storage/azure-blob-storage.module";
 
 @Module({
   imports: [
@@ -50,12 +51,15 @@ import { ThirdPartyModule } from './modules/third-party/third-party.module';
       ],
     }),
     PrismaModule,
+    AzureBlobStorageModule,
+    EmailModule,
+
+    // Modules
     AuthModule,
     UserModule,
     PerformanceIndicatorModule,
     ProjectModule,
     DocumentModule,
-    EmailModule,
     TenantModule,
     ThirdPartyModule,
   ],
