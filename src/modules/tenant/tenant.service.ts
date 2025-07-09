@@ -12,6 +12,7 @@ import {
   PaginationDto,
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
+import { Role } from "@/constants/role";
 
 interface TenantSearchQuery extends PaginationDto {
   country?: string;
@@ -50,10 +51,13 @@ export class TenantService {
         throw new BadRequestException("Leader not found or inactive");
       }
 
-      // Check if leader has appropriate role (admin or superadmin)
-      if (!leader.role || !["admin", "superadmin"].includes(leader.role.name)) {
+      // Check if leader has appropriate role (admin or standard user)
+      if (
+        !leader.role ||
+        ![Role.Admin, Role.StandardUser].includes(leader.role.name)
+      ) {
         throw new BadRequestException(
-          "Leader must have admin or superadmin role"
+          "Leader must have admin or standard user role"
         );
       }
 
@@ -362,10 +366,13 @@ export class TenantService {
         throw new BadRequestException("Leader not found or inactive");
       }
 
-      // Check if leader has appropriate role (admin or superadmin)
-      if (!leader.role || !["admin", "superadmin"].includes(leader.role.name)) {
+      // Check if leader has appropriate role (admin or standard user)
+      if (
+        !leader.role ||
+        ![Role.Admin, Role.StandardUser].includes(leader.role.name)
+      ) {
         throw new BadRequestException(
-          "Leader must have admin or superadmin role"
+          "Leader must have admin or standard user role"
         );
       }
 
@@ -662,14 +669,14 @@ export class TenantService {
   }
 
   async getAvailableLeaders() {
-    // Get users who can be leaders (admin or superadmin) and are not already leading a tenant
+    // Get users who can be leaders (admin or standard user) and are not already leading a tenant
     return this.prisma.tbm_user.findMany({
       where: {
         is_active: true,
         is_deleted: false,
         role: {
           name: {
-            in: ["admin", "superadmin"],
+            in: [Role.Admin, Role.StandardUser],
           },
         },
         leader_tenants: {

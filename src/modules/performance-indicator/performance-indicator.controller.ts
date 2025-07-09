@@ -16,6 +16,7 @@ import { CreatePerformanceIndicatorDto } from "./dto/create-performance-indicato
 import { UpdatePerformanceIndicatorDto } from "./dto/update-performance-indicator.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PaginationDto } from "../../common/dto/pagination.dto";
+import { Role } from "@/constants/role";
 
 @Controller("performance-indicators")
 @UseGuards(JwtAuthGuard)
@@ -88,9 +89,9 @@ export class PerformanceIndicatorController {
 
   private checkAdminPermission(user: any) {
     const userRole = user.role?.name;
-    if (!userRole || !["admin", "superadmin"].includes(userRole)) {
+    if (!userRole || ![Role.Admin, Role.StandardUser].includes(userRole)) {
       throw new ForbiddenException(
-        "Only admin and superadmin users can manage performance indicators"
+        "Only admin and standard user can manage performance indicators"
       );
     }
   }

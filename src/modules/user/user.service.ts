@@ -15,6 +15,7 @@ import {
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
 import { EmailService } from "@/email/email.service";
+import { Role } from "@/constants/role";
 
 interface UserSearchQuery extends PaginationDto {
   role?: string;
@@ -66,10 +67,10 @@ export class UserService {
         throw new BadRequestException("Invalid role specified");
       }
 
-      // Validate role hierarchy - only superadmin can create superadmin users
-      if (createUserDto.role_name === "superadmin") {
+      // Validate role hierarchy - only admin can create admin users
+      if (createUserDto.role_name === Role.Admin) {
         throw new BadRequestException(
-          "Superadmin users can only be created by system initialization"
+          "Admin users can only be created by system initialization"
         );
       }
     }
@@ -234,9 +235,9 @@ export class UserService {
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.findOne(id);
 
-    // Prevent modification of superadmin users by non-superadmin users
-    if (user.role_name === "superadmin") {
-      throw new ForbiddenException("Superadmin users cannot be modified");
+    // Prevent modification of admin users by non-admin users
+    if (user.role_name === Role.Admin) {
+      throw new ForbiddenException("Admin users cannot be modified");
     }
 
     // Check existing code
@@ -257,9 +258,9 @@ export class UserService {
         throw new BadRequestException("Invalid role specified");
       }
 
-      // Prevent elevation to superadmin
-      if (updateUserDto.role_name === "superadmin") {
-        throw new BadRequestException("Cannot elevate user to superadmin role");
+      // Prevent elevation to admin
+      if (updateUserDto.role_name === Role.Admin) {
+        throw new BadRequestException("Cannot elevate user to admin role");
       }
     }
 
@@ -311,9 +312,9 @@ export class UserService {
   async remove(id: string) {
     const user = await this.findOne(id);
 
-    // Prevent deletion of superadmin users
-    if (user.role_name === "superadmin") {
-      throw new ForbiddenException("Superadmin users cannot be deleted");
+    // Prevent deletion of admin users
+    if (user.role_name === Role.Admin) {
+      throw new ForbiddenException("Admin users cannot be deleted");
     }
 
     // Soft delete
@@ -331,9 +332,9 @@ export class UserService {
   async anonymize(id: string) {
     const user = await this.findOne(id);
 
-    // Prevent anonymization of superadmin users
-    if (user.role_name === "superadmin") {
-      throw new ForbiddenException("Superadmin users cannot be anonymized");
+    // Prevent anonymization of admin users
+    if (user.role_name === Role.Admin) {
+      throw new ForbiddenException("Admin users cannot be anonymized");
     }
 
     await this.prisma.tbm_user.update({
@@ -375,8 +376,8 @@ export class UserService {
     const user = await this.findOne(id);
 
     // Prevent deactivation of superadmin users
-    if (user.role_name === "superadmin") {
-      throw new ForbiddenException("Superadmin users cannot be deactivated");
+    if (user.role_name === Role.Admin) {
+      throw new ForbiddenException("Admin users cannot be deactivated");
     }
 
     await this.prisma.tbm_user.update({

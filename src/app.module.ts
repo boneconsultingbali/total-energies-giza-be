@@ -15,6 +15,7 @@ import { EmailModule } from "./email/email.module";
 import { TenantModule } from "./modules/tenant/tenant.module";
 import { ThirdPartyModule } from "./modules/third-party/third-party.module";
 import { AzureBlobStorageModule } from "./storage/azure-blob-storage/azure-blob-storage.module";
+import { RoleModule } from './modules/role/role.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AzureBlobStorageModule } from "./storage/azure-blob-storage/azure-blob-
     DocumentModule,
     TenantModule,
     ThirdPartyModule,
+    RoleModule,
   ],
   controllers: [AppController],
 })
