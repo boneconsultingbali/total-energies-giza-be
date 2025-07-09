@@ -18,6 +18,7 @@ import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { UserInterceptor } from "./user.interceptor";
+import { Role } from "@/constants/role";
 
 @Controller("users")
 @UseGuards(JwtAuthGuard)
@@ -121,15 +122,18 @@ export class UserController {
 
   @Get("roles/available")
   getAvailableRoles(@Request() req) {
-    // Only superadmin can see all roles, admin can see admin and user roles
-    if (req.user.role?.name === "superadmin") {
+    // Only admin can see all roles, admin can see admin and user roles
+    if (req.user.role?.name === Role.Admin) {
       return this.userService.getAvailableRoles([
-        "superadmin",
-        "admin",
-        "user",
+        Role.Admin,
+        Role.StandardUser,
+        Role.Viewer,
       ]);
-    } else if (req.user.role?.name === "admin") {
-      return this.userService.getAvailableRoles(["admin", "user"]);
+    } else if (req.user.role?.name === Role.StandardUser) {
+      return this.userService.getAvailableRoles([
+        Role.StandardUser,
+        Role.Viewer,
+      ]);
     } else {
       throw new ForbiddenException("Insufficient permissions to view roles");
     }

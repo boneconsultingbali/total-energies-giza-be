@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { EmailService, TestEmailData } from "./email.service";
 import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import { Role } from "@/constants/role";
 
 @Controller("email")
 @UseGuards(JwtAuthGuard)
@@ -18,9 +19,9 @@ export class EmailController {
   async sendTestEmail(@Body() testEmailData: TestEmailData, @Request() req) {
     // Only admin and superadmin can send test emails
     const userRole = req.user.role?.name;
-    if (!userRole || !["admin", "superadmin"].includes(userRole)) {
+    if (!userRole || ![Role.Admin, Role.StandardUser].includes(userRole)) {
       throw new ForbiddenException(
-        "Only admin and superadmin users can send test emails"
+        "Only admin and standard user can send test emails"
       );
     }
 

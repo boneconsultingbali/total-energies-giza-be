@@ -11,6 +11,7 @@ import {
 import { Type } from "class-transformer";
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateProfileDto, CreateUserDto } from "./create-user.dto";
+import { Role } from "@/constants/role";
 
 export class UpdateProfileDto extends PartialType(CreateProfileDto) {}
 
@@ -26,7 +27,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 
   @IsOptional()
   @IsString()
-  @IsIn(["admin", "user"]) // Cannot update to superadmin
+  @IsIn([Role.StandardUser, Role.Viewer]) // Cannot update to superadmin
   role_name?: string;
 
   @IsOptional()
