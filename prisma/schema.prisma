@@ -80,6 +80,8 @@ model tbm_user {
   tenant_id String?     @unique
   tenant    tbm_tenant? @relation("tenant_employees", fields: [tenant_id], references: [id], onDelete: Cascade)
 
+  branch_or_acronym String?
+
   leader_tenants tbm_tenant[]       @relation("tenant_leader")
   owned_projects tbm_project[]
   login_logs     tbm_login_log[]

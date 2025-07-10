@@ -76,12 +76,14 @@ export class UserService {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
     // Create user with profile
     const user = await this.prisma.tbm_user.create({
       data: {
         code: createUserDto.code,
+        branch_or_acronym: createUserDto.branch_or_acronym,
         email: createUserDto.email,
         password: hashedPassword,
         role_name: createUserDto.role_name || "user", // Default to user role
@@ -114,7 +116,7 @@ export class UserService {
     await this.emailService.sendWelcomeEmail({
       email: user.email,
       name: userName,
-      temporaryPassword: createUserDto.password,
+      temporaryPassword: randomPassword,
     });
 
     const { password, ...result } = user;
@@ -275,6 +277,9 @@ export class UserService {
       data: {
         ...(updateUserDto.code && { code: updateUserDto.code }),
         ...(updateUserDto.email && { email: updateUserDto.email }),
+        ...(updateUserDto.branch_or_acronym && {
+          branch_or_acronym: updateUserDto.branch_or_acronym,
+        }),
         ...(hashedPassword && { password: hashedPassword }),
         ...(updateUserDto.role_name !== undefined && {
           role_name: updateUserDto.role_name,
