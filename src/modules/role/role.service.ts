@@ -43,45 +43,127 @@ export class RoleService {
     });
   }
 
-  async createRole(createRoleDto: CreateRoleDto) {
+  async fetchRoleById(id: string) {
     const role = await this.prisma.tbm_role.findFirst({
-      where: {
-        name: createRoleDto.name,
+      where: { OR: [{ id }, { name: id }] },
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+        _count: {
+          select: { users: true },
+        },
+        users: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                first_name: true,
+                last_name: true,
+                avatar: true,
+              },
+            },
+          },
+        },
       },
     });
+    if (!role) throw new NotFoundException("Role not found");
+    return role;
+  }
 
-    if (role) throw new ConflictException("Role already exists");
+  async createRole(createRoleDto: CreateRoleDto) {
+    const { permission_ids, ...other } = createRoleDto;
 
-    return this.prisma.tbm_role.create({
-      data: createRoleDto,
+    return this.prisma.$transaction(async (tx) => {
+      const role = await tx.tbm_role.findFirst({
+        where: { name: other.name },
+      });
+      if (role) throw new ConflictException("Role already exists");
+
+      const permissions = await tx.tbm_permission.findMany({
+        where: { id: { in: permission_ids } },
+      });
+      if (permissions.length !== permission_ids.length) {
+        throw new NotFoundException("Some permissions not found");
+      }
+
+      // 1. Create the role
+      const createdRole = await tx.tbm_role.create({
+        data: other,
+      });
+
+      // 2. Create join records in tbs_role_permission
+      await tx.tbs_role_permission.createMany({
+        data: permission_ids.map((permission_id) => ({
+          role_id: createdRole.id,
+          permission_id,
+        })),
+      });
+
+      // 3. Return the created role with permissions
+      return tx.tbm_role.findUnique({
+        where: { id: createdRole.id },
+        include: {
+          permissions: true,
+        },
+      });
     });
   }
 
-  async updateRole(id: string, updateRoleDto: UpdateRoleDto) {
-    const role = await this.prisma.tbm_role.findUnique({
-      where: {
-        id,
-      },
-    });
+  async updateRole(
+    id: string,
+    updateRoleDto: UpdateRoleDto & { permission_ids?: string[] }
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const role = await tx.tbm_role.findUnique({
+        where: { id },
+        include: { permissions: true },
+      });
+      if (!role) throw new NotFoundException("Role not found");
 
-    if (!role) throw new NotFoundException("Role not found");
+      // Check for name conflict
+      if (updateRoleDto.name && role.name !== updateRoleDto.name) {
+        const existingRole = await tx.tbm_role.findFirst({
+          where: { name: updateRoleDto.name },
+        });
+        if (existingRole) {
+          throw new ConflictException("Role with this name already exists");
+        }
+      }
 
-    if (role.name !== updateRoleDto.name) {
-      const existingRole = await this.prisma.tbm_role.findFirst({
-        where: {
-          name: updateRoleDto.name,
+      // Destructure permission_ids out so it's not passed to Prisma
+      const { permission_ids, ...roleData } = updateRoleDto;
+
+      // Update permissions if provided
+      if (permission_ids && permission_ids.length > 0) {
+        await tx.tbs_role_permission.deleteMany({
+          where: { role_id: id },
+        });
+
+        const permissions = await tx.tbm_permission.findMany({
+          where: { id: { in: permission_ids } },
+        });
+        if (permissions.length !== permission_ids.length) {
+          throw new NotFoundException("Some permissions not found");
+        }
+        const rolePermissions = permission_ids.map((permissionId) => ({
+          role_id: id,
+          permission_id: permissionId,
+        }));
+        await tx.tbs_role_permission.createMany({
+          data: rolePermissions,
+        });
+      }
+
+      return tx.tbm_role.update({
+        where: { id },
+        data: {
+          ...roleData,
         },
       });
-      if (existingRole) {
-        throw new ConflictException("Role with this name already exists");
-      }
-    }
-
-    return this.prisma.tbm_role.update({
-      where: {
-        id,
-      },
-      data: updateRoleDto,
     });
   }
 

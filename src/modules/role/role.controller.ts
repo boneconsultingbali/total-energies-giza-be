@@ -38,6 +38,12 @@ export class RoleController {
     return this.roleService.fetchRoles();
   }
 
+  @Get(":id")
+  async fetchRoleById(@Request() req, @Param("id") id: string) {
+    // this.checkPermission(req.user, "role:read");
+    return this.roleService.fetchRoleById(id);
+  }
+
   @Post()
   async createRole(@Body() createRoleDto: CreateRoleDto, @Request() req) {
     // this.checkPermission(req.user, "role:create");
