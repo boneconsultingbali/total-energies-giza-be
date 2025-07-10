@@ -4,6 +4,9 @@ export async function seedPermissions(prisma: PrismaClient) {
   console.log("🔐 Seeding permissions...");
 
   const permissions = [
+    // Dashboard permissions
+    { name: "dashboard:read", description: "Read dashboard data" },
+
     // User management permissions
     { name: "user:create", description: "Create users" },
     { name: "user:read", description: "Read users" },
@@ -42,6 +45,11 @@ export async function seedPermissions(prisma: PrismaClient) {
     { name: "project:read", description: "Read projects" },
     { name: "project:update", description: "Update projects" },
     { name: "project:delete", description: "Delete projects" },
+
+    // Reports
+    { name: "report:generate", description: "Generate reports" },
+    { name: "report:view", description: "View reports" },
+    { name: "report:download", description: "Download reports" },
 
     // Document management
     { name: "document:create", description: "Create documents" },
