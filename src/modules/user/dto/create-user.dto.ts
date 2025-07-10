@@ -2,14 +2,11 @@ import {
   IsEmail,
   IsString,
   IsOptional,
-  MinLength,
   IsBoolean,
   ValidateNested,
   IsDateString,
-  IsIn,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { Role } from "@/constants/role";
 
 export class CreateProfileDto {
   @IsOptional()
@@ -63,7 +60,6 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  @IsIn([Role.Admin, Role.StandardUser, Role.Viewer])
   role_name?: string;
 
   @IsOptional()

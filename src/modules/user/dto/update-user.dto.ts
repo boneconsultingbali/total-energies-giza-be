@@ -5,13 +5,10 @@ import {
   MinLength,
   IsBoolean,
   ValidateNested,
-  IsDateString,
-  IsIn,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateProfileDto, CreateUserDto } from "./create-user.dto";
-import { Role } from "@/constants/role";
 
 export class UpdateProfileDto extends PartialType(CreateProfileDto) {}
 
@@ -27,7 +24,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 
   @IsOptional()
   @IsString()
-  @IsIn([Role.StandardUser, Role.Viewer]) // Cannot update to superadmin
+  // @IsNotIn([Role.Admin, ])
   role_name?: string;
 
   @IsOptional()
