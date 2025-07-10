@@ -20,8 +20,10 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.prisma.tbm_user.findUnique({
-      where: { email },
+    const user = await this.prisma.tbm_user.findFirst({
+      where: {
+        OR: [{ email: email }, { code: email }],
+      },
       include: {
         role: {
           include: {
@@ -102,6 +104,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        code: user.code,
         role: user.role,
         permissions:
           user.role?.permissions.map((rp) => rp.permission.name) || [],

@@ -54,12 +54,12 @@ export class CreateUserDto {
   @IsString()
   code?: string;
 
+  @IsOptional()
+  @IsString()
+  branch_or_acronym?: string;
+
   @IsEmail()
   email: string;
-
-  @IsString()
-  @MinLength(8)
-  password: string;
 
   @IsOptional()
   @IsString()
