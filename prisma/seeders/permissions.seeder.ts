@@ -19,6 +19,10 @@ export async function seedPermissions(prisma: PrismaClient) {
     { name: "role:read", description: "Read roles" },
     { name: "role:update", description: "Update roles" },
     { name: "role:delete", description: "Delete roles" },
+    { name: "permission:create", description: "Create permissions" },
+    { name: "permission:read", description: "Read permissions" },
+    { name: "permission:update", description: "Update permissions" },
+    { name: "permission:delete", description: "Delete permissions" },
     { name: "permission:read", description: "Read permissions" },
     { name: "permission:assign", description: "Assign permissions to roles" },
 
