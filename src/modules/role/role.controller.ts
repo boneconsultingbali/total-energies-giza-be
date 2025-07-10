@@ -19,6 +19,34 @@ import { AssignPermissionDto } from "./dto/assign-permission.dto";
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
+  // Permissions
+  @Get("permission")
+  async fetchPermissions(@Request() req) {
+    // this.checkPermission(req.user, "permission:read");
+    return this.roleService.fetchPermissions();
+  }
+
+  @Post("permission")
+  async createPermission(
+    @Body() createPermissionDto: CreatePermissionDto,
+    @Request() req
+  ) {
+    console.log(req.user);
+
+    // this.checkPermission(req.user, "permission:create");
+    return this.roleService.createPermission(createPermissionDto);
+  }
+
+  @Patch("permission/:id")
+  async updatePermission(
+    @Request() req,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+    @Param("id") id: string
+  ) {
+    // this.checkPermission(req.user, "permission:update");
+    return this.roleService.updatePermission(id, updatePermissionDto);
+  }
+
   @Patch("assign/:id")
   async assignPermission(
     @Request() req,
@@ -58,34 +86,6 @@ export class RoleController {
   ) {
     // this.checkPermission(req.user, "role:update");
     return this.roleService.updateRole(id, updateRoleDto);
-  }
-
-  // Permissions
-  @Get("permission")
-  async fetchPermissions(@Request() req) {
-    // this.checkPermission(req.user, "permission:read");
-    return this.roleService.fetchPermissions();
-  }
-
-  @Post("permission")
-  async createPermission(
-    @Body() createPermissionDto: CreatePermissionDto,
-    @Request() req
-  ) {
-    console.log(req.user);
-
-    // this.checkPermission(req.user, "permission:create");
-    return this.roleService.createPermission(createPermissionDto);
-  }
-
-  @Patch("permission/:id")
-  async updatePermission(
-    @Request() req,
-    @Body() updatePermissionDto: UpdatePermissionDto,
-    @Param("id") id: string
-  ) {
-    // this.checkPermission(req.user, "permission:update");
-    return this.roleService.updatePermission(id, updatePermissionDto);
   }
 
   private checkPermission(user: any, permission: string) {
