@@ -88,6 +88,7 @@ export class UserService {
         password: hashedPassword,
         role_name: createUserDto.role_name || "user", // Default to user role
         is_active: createUserDto.is_active ?? true,
+        tenant_id: createUserDto.tenant_id,
         profile: createUserDto.profile
           ? {
               create: createUserDto.profile,
@@ -286,6 +287,9 @@ export class UserService {
         }),
         ...(updateUserDto.is_active !== undefined && {
           is_active: updateUserDto.is_active,
+        }),
+        ...(updateUserDto.tenant_id && {
+          tenant_id: updateUserDto.tenant_id,
         }),
         ...(updateUserDto.profile && {
           profile: {
