@@ -31,7 +31,7 @@ export class UserService {
   ) {}
 
   async checkExistingCode(code: string, previous_code?: string) {
-    if (code === previous_code) return;
+    if (code === previous_code) return true;
 
     // Check if the new code already exists in the database
     const existingCode = await this.prisma.tbm_user.findUnique({
