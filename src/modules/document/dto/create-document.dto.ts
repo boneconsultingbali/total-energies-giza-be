@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, MaxLength } from "class-validator";
+import { IsString, IsOptional, MaxLength } from "class-validator";
 
 export class CreateDocumentDto {
   @IsString()

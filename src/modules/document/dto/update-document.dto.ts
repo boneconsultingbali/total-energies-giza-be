@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, MaxLength } from "class-validator";
 
 export class UpdateDocumentDto {
   @IsOptional()
@@ -21,10 +16,10 @@ export class UpdateDocumentDto {
   content?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   tenant_id?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   project_id?: string;
 }
