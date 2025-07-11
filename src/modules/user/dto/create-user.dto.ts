@@ -55,6 +55,10 @@ export class CreateUserDto {
   @IsString()
   branch_or_acronym?: string;
 
+  @IsOptional()
+  @IsString()
+  tenant_id?: string;
+
   @IsEmail()
   email: string;
 
