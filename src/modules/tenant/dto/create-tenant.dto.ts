@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, MaxLength } from "class-validator";
+import { IsString, IsOptional, MaxLength } from "class-validator";
 
 export class CreateTenantDto {
   @IsString()
@@ -21,6 +21,6 @@ export class CreateTenantDto {
   address?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   leader_id?: string;
 }

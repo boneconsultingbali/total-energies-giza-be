@@ -1,7 +1,6 @@
 import {
   IsString,
   IsOptional,
-  IsUUID,
   IsDateString,
   IsArray,
   IsNumber,
@@ -9,11 +8,11 @@ import {
   Min,
   Max,
   ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateProjectIndicatorDto {
-  @IsUUID()
+  @IsString()
   indicator_id: string;
 
   @IsOptional()
@@ -57,11 +56,11 @@ export class CreateProjectDto {
   score?: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   tenant_id?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   owner_id?: string;
 
   @IsOptional()

@@ -1,9 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUUID,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, MaxLength } from "class-validator";
 
 export class UpdatePerformanceIndicatorDto {
   @IsOptional()
@@ -17,6 +12,6 @@ export class UpdatePerformanceIndicatorDto {
   description?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   parent_id?: string;
 }
