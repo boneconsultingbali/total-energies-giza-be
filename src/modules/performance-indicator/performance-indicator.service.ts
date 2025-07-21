@@ -150,6 +150,9 @@ export class PerformanceIndicatorService {
               id: true,
               name: true,
               description: true,
+              min_score: true,
+              max_score: true,
+              is_grey: true,
             },
           },
           _count: {
