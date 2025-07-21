@@ -738,7 +738,7 @@ export class ProjectService {
         .map((i) => i.score);
       if (validScores.length > 0) {
         const averageScore =
-          validScores.reduce((sum, score) => sum + score, 0) /
+          validScores.reduce((sum, score) => Number(sum) + Number(score), 0) /
           validScores.length;
 
         await this.prisma.tbm_project.update({

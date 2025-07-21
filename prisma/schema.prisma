@@ -191,11 +191,19 @@ model tbm_document {
 // =====================================================================================================================
 
 model tbm_performance_indicator {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  pillar      String?
+  name        String  @unique
   description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+
+  score     Decimal? @db.Decimal(5, 2) // Score for the indicator
+  min_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator
+  max_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator
+
+  is_grey Boolean @default(false) // Indicates if the indicator is greyed out or inactive
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   parent_id String?
   parent    tbm_performance_indicator?  @relation("indicator_parent", fields: [parent_id], references: [id], onDelete: Cascade)
@@ -221,7 +229,7 @@ model tbm_project {
   end_date   DateTime?
 
   status String?
-  score  Float?
+  score  Decimal? @db.Decimal(5, 2) // Overall score for the project
 
   pillars    String[]                            @default([])
   indicators tbs_project_performance_indicator[]
@@ -242,15 +250,19 @@ model tbm_project {
 }
 
 model tbs_project_performance_indicator {
-  id           String   @id @default(cuid())
-  project_id   String
-  indicator_id String
-  score        Float?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id     String  @id @default(cuid())
+  pillar String?
 
-  project   tbm_project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  indicator tbm_performance_indicator @relation(fields: [indicator_id], references: [id], onDelete: Cascade)
+  score Decimal? @db.Decimal(5, 2) // Score for the indicator in the project
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  project_id String
+  project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  indicator_id String
+  indicator    tbm_performance_indicator @relation(fields: [indicator_id], references: [id], onDelete: Cascade)
 
   @@unique([project_id, indicator_id])
   @@map("tbs_project_performance_indicators")
