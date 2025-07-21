@@ -37,6 +37,7 @@ export class PerformanceIndicatorController {
     query: PaginationDto & {
       parent_id?: string;
       has_parent?: string;
+      pillars?: string;
       q?: string;
     },
     @Request() req

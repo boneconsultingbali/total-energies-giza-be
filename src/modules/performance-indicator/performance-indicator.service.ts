@@ -16,6 +16,7 @@ interface IndicatorSearchQuery extends PaginationDto {
   parent_id?: string;
   has_parent?: string;
   q?: string;
+  pillars?: string;
 }
 
 @Injectable()
@@ -83,6 +84,7 @@ export class PerformanceIndicatorService {
       parent_id,
       has_parent,
       q,
+      pillars,
     } = query;
     // Convert to numbers to avoid Prisma error
     const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
@@ -116,6 +118,13 @@ export class PerformanceIndicatorService {
       } else if (has_parent === "false") {
         searchConditions.push({ parent_id: null });
       }
+    }
+
+    if (pillars) {
+      const pillarIds = pillars.split(",").map((id) => id.trim());
+      searchConditions.push({
+        pillar: { in: pillarIds },
+      });
     }
 
     const where = searchConditions.length > 0 ? { AND: searchConditions } : {};
