@@ -19,6 +19,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { UserInterceptor } from "./user.interceptor";
 import { Role } from "@/constants/role";
+import { UserDomains } from "@/constants/user";
 
 @Controller("users")
 @UseGuards(JwtAuthGuard)
@@ -51,6 +52,11 @@ export class UserController {
   ) {
     this.checkPermission(req.user, "user:read");
     return this.userService.findAll(query);
+  }
+
+  @Get("domains")
+  getDomains() {
+    return UserDomains;
   }
 
   @Get(":id")
