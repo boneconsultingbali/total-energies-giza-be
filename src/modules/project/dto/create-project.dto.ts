@@ -36,6 +36,10 @@ export class CreateProjectDto {
   @MaxLength(2000)
   description?: string;
 
+  @IsString()
+  @MaxLength(50)
+  country: string;
+
   @IsOptional()
   @IsDateString()
   start_date?: string;
@@ -56,16 +60,20 @@ export class CreateProjectDto {
   score?: number;
 
   @IsOptional()
-  @IsString()
-  tenant_id?: string;
-
-  @IsOptional()
-  @IsString()
-  owner_id?: string;
+  @IsString({ each: true })
+  pillars?: string[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateProjectIndicatorDto)
   indicators?: CreateProjectIndicatorDto[];
+
+  @IsOptional()
+  @IsString()
+  tenant_id?: string;
+
+  @IsOptional()
+  @IsString()
+  owner_id?: string;
 }

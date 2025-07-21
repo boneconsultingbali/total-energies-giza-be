@@ -211,16 +211,23 @@ model tbm_performance_indicator {
 // =====================================================================================================================
 
 model tbm_project {
-  id          String    @id @default(cuid())
-  code        String    @unique
+  id          String  @id @default(cuid())
+  code        String  @unique
   name        String
-  description String?   @db.Text
-  start_date  DateTime?
-  end_date    DateTime?
-  status      String?
-  score       Float?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  description String? @db.Text
+  country     String?
+
+  start_date DateTime?
+  end_date   DateTime?
+
+  status String?
+  score  Float?
+
+  pillars    String[]                            @default([])
+  indicators tbs_project_performance_indicator[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   tenant_id String?
   tenant    tbm_tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
@@ -228,9 +235,8 @@ model tbm_project {
   owner_id String?
   owner    tbm_user? @relation(fields: [owner_id], references: [id], onDelete: SetNull)
 
-  statuses   tbs_project_status[]
-  indicators tbs_project_performance_indicator[]
-  documents  tbm_document[]
+  statuses  tbs_project_status[]
+  documents tbm_document[]
 
   @@map("tbm_projects")
 }

@@ -14,6 +14,7 @@ import {
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
 import { EmailService } from "@/email/email.service";
+import { Project } from "@/constants/project";
 
 interface ProjectSearchQuery extends PaginationDto {
   status?: string;
@@ -79,14 +80,15 @@ export class ProjectService {
         code: createDto.code,
         name: createDto.name,
         description: createDto.description,
+        country: createDto.country,
         start_date: createDto.start_date
           ? new Date(createDto.start_date)
           : null,
         end_date: createDto.end_date ? new Date(createDto.end_date) : null,
-        status: createDto.status || "Planning",
+        status: createDto.status || Project.Status.Farming,
         score: createDto.score,
-        tenant_id: createDto.tenant_id,
-        owner_id: createDto.owner_id || userId,
+
+        pillars: createDto.pillars || [],
         indicators: createDto.indicators
           ? {
               create: createDto.indicators.map((indicator) => ({
@@ -95,9 +97,12 @@ export class ProjectService {
               })),
             }
           : undefined,
+
+        tenant_id: createDto.tenant_id || null,
+        owner_id: createDto.owner_id || userId,
         statuses: {
           create: {
-            status: createDto.status || "Planning",
+            status: createDto.status || Project.Status.Farming,
             description: "Project created",
           },
         },
