@@ -71,6 +71,10 @@ export class CreateUserDto {
   is_active?: boolean = true;
 
   @IsOptional()
+  @IsString({ each: true })
+  domains?: string[];
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => CreateProfileDto)
   profile?: CreateProfileDto;
