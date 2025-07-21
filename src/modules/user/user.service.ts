@@ -75,6 +75,16 @@ export class UserService {
       }
     }
 
+    // Validate tenant exists if provided
+    if (createUserDto.tenant_id) {
+      const tenant = await this.prisma.tbm_tenant.findUnique({
+        where: { id: createUserDto.tenant_id },
+      });
+      if (!tenant) {
+        throw new BadRequestException("Invalid tenant specified");
+      }
+    }
+
     // Hash password
     const randomPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(randomPassword, 10);
@@ -88,7 +98,8 @@ export class UserService {
         password: hashedPassword,
         role_name: createUserDto.role_name || "user", // Default to user role
         is_active: createUserDto.is_active ?? true,
-        tenant_id: createUserDto.tenant_id,
+        tenant_id: createUserDto.tenant_id || null,
+        domains: createUserDto.domains || [],
         profile: createUserDto.profile
           ? {
               create: createUserDto.profile,
@@ -267,6 +278,16 @@ export class UserService {
       }
     }
 
+    // Validate tenant if provided
+    if (updateUserDto.tenant_id) {
+      const tenant = await this.prisma.tbm_tenant.findUnique({
+        where: { id: updateUserDto.tenant_id },
+      });
+      if (!tenant) {
+        throw new BadRequestException("Invalid tenant specified");
+      }
+    }
+
     // Hash password if provided
     let hashedPassword;
     if (updateUserDto.password) {
@@ -290,6 +311,9 @@ export class UserService {
         }),
         ...(updateUserDto.tenant_id && {
           tenant_id: updateUserDto.tenant_id,
+        }),
+        ...(updateUserDto.domains && {
+          domains: updateUserDto.domains,
         }),
         ...(updateUserDto.profile && {
           profile: {

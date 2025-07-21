@@ -10,8 +10,15 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { PartialType } from "@nestjs/mapped-types";
+import {
+  CreateProjectDto,
+  CreateProjectIndicatorDto,
+} from "./create-project.dto";
 
-export class UpdateProjectIndicatorDto {
+export class UpdateProjectIndicatorDto extends PartialType(
+  CreateProjectIndicatorDto
+) {
   @IsString()
   indicator_id: string;
 
@@ -22,7 +29,7 @@ export class UpdateProjectIndicatorDto {
   score?: number;
 }
 
-export class UpdateProjectDto {
+export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @IsOptional()
   @IsString()
   @MaxLength(50)
@@ -32,42 +39,4 @@ export class UpdateProjectDto {
   @IsString()
   @MaxLength(255)
   name?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  description?: string;
-
-  @IsOptional()
-  @IsDateString()
-  start_date?: string;
-
-  @IsOptional()
-  @IsDateString()
-  end_date?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  status?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  score?: number;
-
-  @IsOptional()
-  @IsString()
-  tenant_id?: string;
-
-  @IsOptional()
-  @IsString()
-  owner_id?: string;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => UpdateProjectIndicatorDto)
-  indicators?: UpdateProjectIndicatorDto[];
 }

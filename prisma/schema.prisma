@@ -56,8 +56,11 @@ model tbm_user {
   id   String  @id @default(cuid())
   code String? @unique
 
-  email      String   @unique
-  password   String
+  email    String @unique
+  password String
+
+  domains String[] @default([])
+
   is_active  Boolean  @default(true)
   is_deleted Boolean  @default(false)
   created_at DateTime @default(now())
@@ -188,11 +191,19 @@ model tbm_document {
 // =====================================================================================================================
 
 model tbm_performance_indicator {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  pillar      String?
+  name        String  @unique
   description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+
+  score     Decimal? @db.Decimal(5, 2) // Score for the indicator
+  min_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator
+  max_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator
+
+  is_grey Boolean @default(false) // Indicates if the indicator is greyed out or inactive
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   parent_id String?
   parent    tbm_performance_indicator?  @relation("indicator_parent", fields: [parent_id], references: [id], onDelete: Cascade)
@@ -208,16 +219,23 @@ model tbm_performance_indicator {
 // =====================================================================================================================
 
 model tbm_project {
-  id          String    @id @default(cuid())
-  code        String    @unique
+  id          String  @id @default(cuid())
+  code        String  @unique
   name        String
-  description String?   @db.Text
-  start_date  DateTime?
-  end_date    DateTime?
-  status      String?
-  score       Float?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  description String? @db.Text
+  country     String?
+
+  start_date DateTime?
+  end_date   DateTime?
+
+  status String?
+  score  Decimal? @db.Decimal(5, 2) // Overall score for the project
+
+  pillars    String[]                            @default([])
+  indicators tbs_project_performance_indicator[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   tenant_id String?
   tenant    tbm_tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
@@ -225,23 +243,26 @@ model tbm_project {
   owner_id String?
   owner    tbm_user? @relation(fields: [owner_id], references: [id], onDelete: SetNull)
 
-  statuses   tbs_project_status[]
-  indicators tbs_project_performance_indicator[]
-  documents  tbm_document[]
+  statuses  tbs_project_status[]
+  documents tbm_document[]
 
   @@map("tbm_projects")
 }
 
 model tbs_project_performance_indicator {
-  id           String   @id @default(cuid())
-  project_id   String
-  indicator_id String
-  score        Float?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id     String  @id @default(cuid())
+  pillar String?
 
-  project   tbm_project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  indicator tbm_performance_indicator @relation(fields: [indicator_id], references: [id], onDelete: Cascade)
+  score Decimal? @db.Decimal(5, 2) // Score for the indicator in the project
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  project_id String
+  project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  indicator_id String
+  indicator    tbm_performance_indicator @relation(fields: [indicator_id], references: [id], onDelete: Cascade)
 
   @@unique([project_id, indicator_id])
   @@map("tbs_project_performance_indicators")
