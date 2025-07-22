@@ -11,6 +11,8 @@ import {
   Request,
   ForbiddenException,
   Put,
+  UseInterceptors,
+  UploadedFiles,
 } from "@nestjs/common";
 import { ProjectService } from "./project.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
@@ -22,16 +24,53 @@ import {
   ProjectPerformanceValuePillars,
   ProjectStatuses,
 } from "@/constants/project";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { AzureBlobStorageService } from "@/storage/azure-blob-storage/azure-blob-storage.service";
 
 @Controller("projects")
 @UseGuards(JwtAuthGuard)
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly azureBlobStorageService: AzureBlobStorageService
+  ) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto, @Request() req) {
+  @UseInterceptors(
+    FilesInterceptor("files", 10, {
+      fileFilter: (req, file, cb) => {
+        // Accept all files, no filtering
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+      },
+    })
+  )
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @Request() req,
+    @UploadedFiles() files?: Express.Multer.File[]
+  ) {
     this.checkPermission(req.user, "project:create");
-    return this.projectService.create(createProjectDto, req.user.id);
+
+    let fileUrls: string[] = [];
+
+    // Upload files if they exist
+    if (files && files.length > 0) {
+      console.log("Files received:", files);
+      fileUrls = await this.azureBlobStorageService.uploadFiles(files);
+    }
+
+    console.log("File URLs after upload:", fileUrls);
+
+    return this.projectService.create(
+      {
+        ...createProjectDto,
+        files: fileUrls.length > 0 ? fileUrls : createProjectDto.files,
+      },
+      req.user.id
+    );
   }
 
   @Get()

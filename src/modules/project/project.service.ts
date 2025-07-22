@@ -87,94 +87,118 @@ export class ProjectService {
       }
     }
 
-    // Create project with indicators
-    const project = await this.prisma.tbm_project.create({
-      data: {
-        code: createDto.code,
-        name: createDto.name,
-        description: createDto.description,
-        country: createDto.country,
-        start_date: createDto.start_date
-          ? new Date(createDto.start_date)
-          : null,
-        end_date: createDto.end_date ? new Date(createDto.end_date) : null,
-        status: createDto.status || Project.Status.Framing,
-        score: createDto.score,
+    // Create project with indicators and documents in a transaction
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Create the project first
+      const project = await prisma.tbm_project.create({
+        data: {
+          code: createDto.code,
+          name: createDto.name,
+          description: createDto.description,
+          country: createDto.country,
+          start_date: createDto.start_date
+            ? new Date(createDto.start_date)
+            : null,
+          end_date: createDto.end_date ? new Date(createDto.end_date) : null,
+          status: createDto.status || Project.Status.Framing,
+          score: createDto.score,
 
-        domains: createDto.domains || [],
-        pillars: createDto.pillars || [],
-        indicators: createDto.indicators
-          ? {
-              create: createDto.indicators.map((indicator) => ({
-                indicator_id: indicator.indicator_id,
-                score: indicator.score,
-              })),
-            }
-          : undefined,
+          domains: createDto.domains || [],
+          pillars: createDto.pillars || [],
+          indicators: createDto.indicators
+            ? {
+                create: createDto.indicators.map((indicator) => ({
+                  indicator_id: indicator.indicator_id,
+                  score: indicator.score,
+                })),
+              }
+            : undefined,
 
-        tenant_id: createDto.tenant_id || null,
-        owner_id: createDto.owner_id || userId,
-        statuses: {
-          create: {
-            status: createDto.status || Project.Status.Framing,
-            description: "Project created",
-          },
-        },
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            email: true,
-            profile: {
-              select: {
-                first_name: true,
-                last_name: true,
-              },
+          tenant_id: createDto.tenant_id || null,
+          owner_id: createDto.owner_id || userId,
+          statuses: {
+            create: {
+              status: createDto.status || Project.Status.Framing,
+              description: "Project created",
             },
           },
         },
-        tenant: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-          },
-        },
-        indicators: {
-          include: {
-            indicator: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
+      });
+
+      // Create documents if files are provided
+      if (createDto.files && createDto.files.length > 0) {
+        await Promise.all(
+          createDto.files.map(async (url) => {
+            return await prisma.tbm_document.create({
+              data: {
+                name: url.split("/").pop() || "Untitled Document",
+                content: url,
+                tenant_id: createDto.tenant_id || null,
+                project_id: project.id,
+              },
+            });
+          })
+        );
+      }
+
+      // Return the project with all related data
+      return await prisma.tbm_project.findUnique({
+        where: { id: project.id },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              profile: {
+                select: {
+                  first_name: true,
+                  last_name: true,
+                },
               },
             },
           },
-        },
-        statuses: {
-          orderBy: { created_at: "desc" },
-          take: 5,
-        },
-        documents: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            created_at: true,
+          tenant: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          indicators: {
+            include: {
+              indicator: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                },
+              },
+            },
+          },
+          statuses: {
+            orderBy: { created_at: "desc" },
+            take: 5,
+          },
+          documents: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              created_at: true,
+            },
+          },
+          _count: {
+            select: {
+              indicators: true,
+              documents: true,
+              statuses: true,
+            },
           },
         },
-        _count: {
-          select: {
-            indicators: true,
-            documents: true,
-            statuses: true,
-          },
-        },
-      },
+      });
     });
 
-    return project;
+    return result;
   }
 
   async findAll(

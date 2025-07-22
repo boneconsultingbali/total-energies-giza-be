@@ -46,6 +46,23 @@ export class AzureBlobStorageService {
     return blockBlobClient.url;
   }
 
+  async uploadFiles(files: Express.Multer.File[]): Promise<string[]> {
+    const uploadPromises = files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+
+      await blockBlobClient.uploadData(file.buffer, {
+        blobHTTPHeaders: {
+          blobContentType: file.mimetype,
+        },
+      });
+
+      return blockBlobClient.url;
+    });
+
+    return Promise.all(uploadPromises);
+  }
+
   async deleteFile(fileUrl: string): Promise<void> {
     try {
       // Extract blob name from URL

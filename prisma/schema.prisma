@@ -231,6 +231,9 @@ model tbm_project {
   status String?
   score  Decimal? @db.Decimal(5, 2) // Overall score for the project
 
+  currency String?  @default("USD") // Currency for the project budget
+  budget   Decimal? @db.Decimal(10, 2) // Budget for the project
+
   domains    String[]                            @default([])
   pillars    String[]                            @default([])
   indicators tbs_project_performance_indicator[]
