@@ -38,9 +38,22 @@ export class ProjectController {
   findAll(
     @Query()
     query: PaginationDto & {
+      // Direct project fields from schema
       status?: string;
+      country?: string; // Direct field on project
+      start_date?: string; // ISO date string
+      end_date?: string; // ISO date string
+      score?: number;
+
+      // Relationship fields
       owner_id?: string;
       tenant_id?: string;
+
+      // Array fields (support multiple values)
+      domains?: string; // Multiple values separated by commas
+      pillars?: string; // Multiple values separated by commas
+
+      // General search
       q?: string;
     },
     @Request() req

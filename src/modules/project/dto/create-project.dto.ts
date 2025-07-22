@@ -64,6 +64,10 @@ export class CreateProjectDto {
   pillars?: string[];
 
   @IsOptional()
+  @IsString({ each: true })
+  domains?: string[];
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateProjectIndicatorDto)

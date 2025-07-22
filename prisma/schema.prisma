@@ -231,6 +231,7 @@ model tbm_project {
   status String?
   score  Decimal? @db.Decimal(5, 2) // Overall score for the project
 
+  domains    String[]                            @default([])
   pillars    String[]                            @default([])
   indicators tbs_project_performance_indicator[]
 
