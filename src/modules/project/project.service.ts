@@ -85,7 +85,7 @@ export class ProjectService {
           ? new Date(createDto.start_date)
           : null,
         end_date: createDto.end_date ? new Date(createDto.end_date) : null,
-        status: createDto.status || Project.Status.Farming,
+        status: createDto.status || Project.Status.Framing,
         score: createDto.score,
 
         pillars: createDto.pillars || [],
@@ -102,7 +102,7 @@ export class ProjectService {
         owner_id: createDto.owner_id || userId,
         statuses: {
           create: {
-            status: createDto.status || Project.Status.Farming,
+            status: createDto.status || Project.Status.Framing,
             description: "Project created",
           },
         },

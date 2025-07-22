@@ -1,6 +1,6 @@
 export const Project = {
   Status: {
-    Farming: "Farming",
+    Framing: "Framing",
     Qualification: "Qualification",
     ProblemSolving: "Problem Solving",
     Testing: "Testing",
