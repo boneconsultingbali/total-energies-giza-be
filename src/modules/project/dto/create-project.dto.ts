@@ -55,9 +55,17 @@ export class CreateProjectDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(100)
   score?: number;
+
+  // currency
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  budget?: number;
 
   @IsOptional()
   @IsString({ each: true })
@@ -66,6 +74,10 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString({ each: true })
   domains?: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  files?: string[];
 
   @IsOptional()
   @IsArray()

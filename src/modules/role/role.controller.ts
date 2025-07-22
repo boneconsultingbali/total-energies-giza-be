@@ -21,18 +21,13 @@ export class RoleController {
 
   // Permissions
   @Get("permission")
-  async fetchPermissions(@Request() req) {
+  async fetchPermissions() {
     // this.checkPermission(req.user, "permission:read");
     return this.roleService.fetchPermissions();
   }
 
   @Post("permission")
-  async createPermission(
-    @Body() createPermissionDto: CreatePermissionDto,
-    @Request() req
-  ) {
-    console.log(req.user);
-
+  async createPermission(@Body() createPermissionDto: CreatePermissionDto) {
     // this.checkPermission(req.user, "permission:create");
     return this.roleService.createPermission(createPermissionDto);
   }
@@ -61,7 +56,7 @@ export class RoleController {
   }
 
   @Get()
-  async fetchRoles(@Request() req) {
+  async fetchRoles() {
     // this.checkPermission(req.user, "role:read");
     return this.roleService.fetchRoles();
   }
@@ -73,7 +68,7 @@ export class RoleController {
   }
 
   @Post()
-  async createRole(@Body() createRoleDto: CreateRoleDto, @Request() req) {
+  async createRole(@Body() createRoleDto: CreateRoleDto) {
     // this.checkPermission(req.user, "role:create");
     return this.roleService.createRole(createRoleDto);
   }
@@ -89,8 +84,6 @@ export class RoleController {
   }
 
   private checkPermission(user: any, permission: string) {
-    console.log(user.permissions);
-
     if (!user.permissions.includes(permission)) {
       throw new ForbiddenException(
         `Insufficient permissions: ${permission} required`
