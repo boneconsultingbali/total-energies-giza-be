@@ -22,12 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:reset": "prisma migrate reset --force --skip-seed",
-    "seed:permissions": "ts-node -e \"import('./prisma/seeders/permissions.seeder').then(m => m.seedPermissions(new (require('@prisma/client')).PrismaClient()))\"",
-    "seed:roles": "ts-node -e \"import('./prisma/seeders/roles.seeder').then(m => m.seedRoles(new (require('@prisma/client')).PrismaClient()))\"",
-    "seed:users": "ts-node -e \"import('./prisma/seeders/users.seeder').then(m => m.seedUsers(new (require('@prisma/client')).PrismaClient()))\"",
-    "seed:indicators": "ts-node -e \"import('./prisma/seeders/performance-indicators.seeder').then(m => m.seedPerformanceIndicators(new (require('@prisma/client')).PrismaClient()))\"",
-    "seed:tenants": "ts-node -e \"import('./prisma/seeders/tenants.seeder').then(m => m.seedTenants(new (require('@prisma/client')).PrismaClient()))\""
+    "prisma:reset": "prisma migrate reset --force --skip-seed"
   },
   "dependencies": {
     "@azure/communication-email": "^1.0.0",
@@ -54,6 +49,8 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.31.0",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
@@ -64,9 +61,9 @@
     "@types/passport-jwt": "^3.0.13",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^2.0.12",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.42.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "jest": "^29.5.0",

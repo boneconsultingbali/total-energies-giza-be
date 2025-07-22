@@ -18,7 +18,6 @@ import { Project } from "@/constants/project";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import {
   buildProjectInclude,
-  PROJECT_LIST_SELECT,
   PROJECT_DETAIL_INCLUDE,
 } from "./project.includes";
 
@@ -151,6 +150,9 @@ export class ProjectService extends BaseService {
             data: createDto.indicators.map((indicator) => ({
               project_id: project.id,
               indicator_id: indicator.indicator_id,
+
+              expected_trend: indicator.expected_trend,
+              expected_score: indicator.expected_score,
               score: indicator.score,
             })),
           })
@@ -267,7 +269,6 @@ export class ProjectService extends BaseService {
     }
 
     // Date range filters
-    const dateConditions = this.buildDateRangeConditions(start_date, end_date);
     if (start_date) {
       searchConditions.push({ start_date: { gte: new Date(start_date) } });
     }
@@ -456,7 +457,7 @@ export class ProjectService extends BaseService {
         updateData.owner_id = updateDto.owner_id;
 
       // Update project
-      const updatedProject = await tx.tbm_project.update({
+      await tx.tbm_project.update({
         where: { id },
         data: updateData,
       });
@@ -486,6 +487,9 @@ export class ProjectService extends BaseService {
             data: updateDto.indicators.map((indicator) => ({
               project_id: id,
               indicator_id: indicator.indicator_id,
+
+              expected_trend: indicator.expected_trend,
+              expected_score: indicator.expected_score,
               score: indicator.score,
             })),
           });

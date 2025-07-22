@@ -72,7 +72,7 @@ export class AuthService {
       },
     });
 
-    const { password: _, ...result } = user;
+    const { password: _password, ...result } = user;
     return result;
   }
 

@@ -9,20 +9,22 @@ import {
   Query,
   UseGuards,
   Request,
-  ForbiddenException,
   UseInterceptors,
   UploadedFile,
 } from "@nestjs/common";
+import { Express } from "express";
 import { DocumentService } from "./document.service";
 import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { PermissionGuard } from "../../common/guards/permission.guard";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { AzureBlobStorageService } from "@/storage/azure-blob-storage/azure-blob-storage.service";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller("documents")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 export class DocumentController {
   constructor(
     private readonly documentService: DocumentService,
@@ -30,14 +32,13 @@ export class DocumentController {
   ) {}
 
   @Post()
+  @RequirePermission("document:create")
   @UseInterceptors(FileInterceptor("file"))
   async create(
     @Body() createDocumentDto: CreateDocumentDto,
     @Request() req,
     @UploadedFile() file: Express.Multer.File
   ) {
-    this.checkPermission(req.user, "document:create");
-
     const fileRes = await this.azureBlobStorageService.uploadFile(file);
 
     return this.documentService.create(
@@ -52,6 +53,7 @@ export class DocumentController {
   }
 
   @Get()
+  @RequirePermission("document:read")
   findAll(
     @Query()
     query: PaginationDto & {
@@ -61,7 +63,6 @@ export class DocumentController {
     },
     @Request() req
   ) {
-    this.checkPermission(req.user, "document:read");
     return this.documentService.findAll(
       query,
       req.user.id,
@@ -70,12 +71,13 @@ export class DocumentController {
   }
 
   @Get(":id")
+  @RequirePermission("document:read")
   findOne(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "document:read");
     return this.documentService.findOne(id, req.user.id, req.user.role?.name);
   }
 
   @Patch(":id")
+  @RequirePermission("document:update")
   @UseInterceptors(FileInterceptor("file"))
   async update(
     @Param("id") id: string,
@@ -83,8 +85,6 @@ export class DocumentController {
     @Request() req,
     @UploadedFile() file?: Express.Multer.File
   ) {
-    this.checkPermission(req.user, "document:update");
-
     let fileRes;
     if (file) {
       fileRes = await this.azureBlobStorageService.uploadFile(file);
@@ -102,16 +102,8 @@ export class DocumentController {
   }
 
   @Delete(":id")
+  @RequirePermission("document:delete")
   remove(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "document:delete");
     return this.documentService.remove(id, req.user.id, req.user.role?.name);
-  }
-
-  private checkPermission(user: any, permission: string) {
-    if (!user.permissions.includes(permission)) {
-      throw new ForbiddenException(
-        `Insufficient permissions: ${permission} required`
-      );
-    }
   }
 }

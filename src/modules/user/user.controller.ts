@@ -16,13 +16,15 @@ import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { PermissionGuard } from "../../common/guards/permission.guard";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { UserInterceptor } from "./user.interceptor";
 import { Role } from "@/constants/role";
 import { UserDomains } from "@/constants/user";
 
 @Controller("users")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @UseInterceptors(UserInterceptor)
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -39,18 +41,17 @@ export class UserController {
   }
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto, @Request() req) {
-    this.checkPermission(req.user, "user:create");
+  @RequirePermission("user:create")
+  create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
 
   @Get()
+  @RequirePermission("user:read")
   findAll(
     @Query()
-    query: PaginationDto & { role?: string; active?: string; q?: string },
-    @Request() req
+    query: PaginationDto & { role?: string; active?: string; q?: string }
   ) {
-    this.checkPermission(req.user, "user:read");
     return this.userService.findAll(query);
   }
 
@@ -60,56 +61,52 @@ export class UserController {
   }
 
   @Get(":id")
-  async findOne(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:read");
+  @RequirePermission("user:read")
+  async findOne(@Param("id") id: string) {
     const result = await this.userService.findOne(id);
 
     return result;
   }
 
   @Patch(":id")
-  update(
-    @Param("id") id: string,
-    @Body() updateUserDto: UpdateUserDto,
-    @Request() req
-  ) {
-    this.checkPermission(req.user, "user:update");
+  @RequirePermission("user:update")
+  update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:delete");
+  @RequirePermission("user:delete")
+  remove(@Param("id") id: string) {
     return this.userService.remove(id);
   }
 
   @Post(":id/anonymize")
-  anonymize(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:anonymize");
+  @RequirePermission("user:anonymize")
+  anonymize(@Param("id") id: string) {
     return this.userService.anonymize(id);
   }
 
   @Post(":id/activate")
-  activate(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:activate");
+  @RequirePermission("user:activate")
+  activate(@Param("id") id: string) {
     return this.userService.activate(id);
   }
 
   @Post(":id/deactivate")
-  deactivate(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:activate");
+  @RequirePermission("user:activate")
+  deactivate(@Param("id") id: string) {
     return this.userService.deactivate(id);
   }
 
   @Get(":id/login-history")
-  getLoginHistory(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:view-logs");
+  @RequirePermission("user:view-logs")
+  getLoginHistory(@Param("id") id: string) {
     return this.userService.getLoginHistory(id);
   }
 
   @Post(":id/unlock")
-  unlock(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "user:unlock");
+  @RequirePermission("user:unlock")
+  unlock(@Param("id") id: string) {
     return this.userService.unlock(id);
   }
 
@@ -121,7 +118,11 @@ export class UserController {
   ) {
     // Users can update their own preferences, or users with user:update permission can update any
     if (req.user.id !== id) {
-      this.checkPermission(req.user, "user:update");
+      if (!req.user.permissions.includes("user:update")) {
+        throw new ForbiddenException(
+          `Insufficient permissions: user:update required`
+        );
+      }
     }
     return this.userService.updatePreferences(id, preferences);
   }
@@ -142,14 +143,6 @@ export class UserController {
       ]);
     } else {
       throw new ForbiddenException("Insufficient permissions to view roles");
-    }
-  }
-
-  private checkPermission(user: any, permission: string) {
-    if (!user.permissions.includes(permission)) {
-      throw new ForbiddenException(
-        `Insufficient permissions: ${permission} required`
-      );
     }
   }
 }

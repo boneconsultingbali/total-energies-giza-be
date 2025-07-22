@@ -1,15 +1,11 @@
 import {
   IsString,
   IsOptional,
-  IsDateString,
-  IsArray,
   IsNumber,
   MaxLength,
   Min,
   Max,
-  ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
 import { PartialType } from "@nestjs/mapped-types";
 import {
   CreateProjectDto,
@@ -27,6 +23,16 @@ export class UpdateProjectIndicatorDto extends PartialType(
   @Min(0)
   @Max(100)
   score?: number;
+
+  @IsOptional()
+  @IsString()
+  expected_trend?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  expected_score?: number;
 }
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {
