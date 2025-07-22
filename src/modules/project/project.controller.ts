@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UploadedFiles,
 } from "@nestjs/common";
+import { Express } from "express";
 import { ProjectService } from "./project.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
@@ -58,11 +59,8 @@ export class ProjectController {
 
     // Upload files if they exist
     if (files && files.length > 0) {
-      console.log("Files received:", files);
       fileUrls = await this.azureBlobStorageService.uploadFiles(files);
     }
-
-    console.log("File URLs after upload:", fileUrls);
 
     return this.projectService.create(
       {
@@ -111,12 +109,12 @@ export class ProjectController {
   }
 
   @Get("statuses")
-  getStatus(@Request() req) {
+  getStatus() {
     return ProjectStatuses;
   }
 
   @Get("performance-value-pillars")
-  getPerformanceValuePillars(@Request() req) {
+  getPerformanceValuePillars() {
     return ProjectPerformanceValuePillars;
   }
 

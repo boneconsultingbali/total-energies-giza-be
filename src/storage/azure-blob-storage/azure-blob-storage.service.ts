@@ -3,11 +3,12 @@ import {
   BlobServiceClient,
   StorageSharedKeyCredential,
 } from "@azure/storage-blob";
-import { Injectable } from "@nestjs/common";
-import * as stream from "stream";
+import { Injectable, Logger } from "@nestjs/common";
+import { type Express } from "express";
 
 @Injectable()
 export class AzureBlobStorageService {
+  private readonly logger = new Logger(AzureBlobStorageService.name);
   private containerClient;
 
   constructor() {
@@ -75,7 +76,7 @@ export class AzureBlobStorageService {
         await blockBlobClient.deleteIfExists();
       }
     } catch (error) {
-      console.error("Error deleting file from Azure Blob Storage:", error);
+      this.logger.error("Error deleting file from Azure Blob Storage:", error);
       // Don't throw error to prevent blocking the update operation
     }
   }
