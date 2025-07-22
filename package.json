@@ -22,7 +22,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:reset": "prisma migrate reset --force --skip-seed"
+    "prisma:reset": "prisma migrate reset --force --skip-seed",
+    "sentry:test": "curl http://localhost:3001/api/v1/test-sentry && echo '\n--- Testing error capture ---' && curl http://localhost:3001/api/v1/test-sentry-error || echo 'Error captured successfully'"
   },
   "dependencies": {
     "@azure/communication-email": "^1.0.0",
@@ -36,6 +37,8 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/throttler": "^5.0.1",
     "@prisma/client": "^5.7.0",
+    "@sentry/nestjs": "^9.40.0",
+    "@sentry/profiling-node": "^9.40.0",
     "bcryptjs": "^3.0.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",

@@ -9,6 +9,7 @@ import {
 import { Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import { Logger } from "winston";
+import * as Sentry from "@sentry/nestjs";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -43,7 +44,31 @@ export class HttpExceptionFilter implements ExceptionFilter {
       user: request.user?.id || "anonymous",
     };
 
+    // Log to Winston
     this.logger.error("HTTP Exception", errorLog);
+
+    // Report server errors (5xx) to Sentry
+    if (status >= 500) {
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "http-exception-filter");
+        scope.setLevel("error");
+        scope.setContext("request", {
+          url: request.url,
+          method: request.method,
+          headers: request.headers,
+          query: request.query,
+          body: request.body,
+        });
+        if (request.user) {
+          scope.setUser({
+            id: request.user.id,
+            email: request.user.email,
+            username: request.user.username,
+          });
+        }
+        Sentry.captureException(exception);
+      });
+    }
 
     response.status(status).json({
       success: false,

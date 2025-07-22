@@ -1,8 +1,13 @@
+// IMPORTANT: Make sure to import `instrument.ts` at the top of your file.
+// If you're using CommonJS (CJS) syntax, use `require("./instrument.ts");`
+import "./instrument";
+
+// All other imports below
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
-import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { SentryExceptionFilter } from "./common/filters/sentry-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 
@@ -27,9 +32,9 @@ async function bootstrap() {
   );
 
   // Global exception filter
-  app.useGlobalFilters(new HttpExceptionFilter(logger));
+  app.useGlobalFilters(new SentryExceptionFilter());
 
-  // Global response interceptor
+  // Global interceptors
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   // CORS
