@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsNumber,
   MaxLength,
-  Min,
   Max,
 } from "class-validator";
 import { PartialType } from "@nestjs/mapped-types";
@@ -20,7 +19,6 @@ export class UpdateProjectIndicatorDto extends PartialType(
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   @Max(100)
   score?: number;
 
@@ -30,7 +28,6 @@ export class UpdateProjectIndicatorDto extends PartialType(
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   @Max(100)
   expected_score?: number;
 }

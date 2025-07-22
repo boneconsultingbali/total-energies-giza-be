@@ -17,7 +17,6 @@ export class CreateProjectIndicatorDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   @Max(100)
   score?: number;
 
@@ -27,7 +26,6 @@ export class CreateProjectIndicatorDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
   @Max(100)
   expected_score?: number;
 }

@@ -62,6 +62,11 @@ export class ProjectController {
       fileUrls = await this.azureBlobStorageService.uploadFiles(files);
     }
 
+    console.log({
+      body: createProjectDto,
+      files: fileUrls,
+    });
+
     return this.projectService.create(
       {
         ...createProjectDto,
