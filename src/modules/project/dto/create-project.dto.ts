@@ -20,6 +20,16 @@ export class CreateProjectIndicatorDto {
   @Min(0)
   @Max(100)
   score?: number;
+
+  @IsOptional()
+  @IsString()
+  expected_trend?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  expected_score?: number;
 }
 
 export class CreateProjectDto {

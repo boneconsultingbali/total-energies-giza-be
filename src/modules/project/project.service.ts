@@ -150,6 +150,9 @@ export class ProjectService extends BaseService {
             data: createDto.indicators.map((indicator) => ({
               project_id: project.id,
               indicator_id: indicator.indicator_id,
+
+              expected_trend: indicator.expected_trend,
+              expected_score: indicator.expected_score,
               score: indicator.score,
             })),
           })
@@ -484,6 +487,9 @@ export class ProjectService extends BaseService {
             data: updateDto.indicators.map((indicator) => ({
               project_id: id,
               indicator_id: indicator.indicator_id,
+
+              expected_trend: indicator.expected_trend,
+              expected_score: indicator.expected_score,
               score: indicator.score,
             })),
           });

@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  ForbiddenException,
   Put,
   UseInterceptors,
   UploadedFiles,
@@ -20,6 +19,8 @@ import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { CreateProjectStatusDto } from "./dto/create-project-status.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { PermissionGuard } from "../../common/guards/permission.guard";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import {
   ProjectPerformanceValuePillars,
@@ -29,7 +30,7 @@ import { FilesInterceptor } from "@nestjs/platform-express";
 import { AzureBlobStorageService } from "@/storage/azure-blob-storage/azure-blob-storage.service";
 
 @Controller("projects")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 export class ProjectController {
   constructor(
     private readonly projectService: ProjectService,
@@ -37,6 +38,7 @@ export class ProjectController {
   ) {}
 
   @Post()
+  @RequirePermission("project:create")
   @UseInterceptors(
     FilesInterceptor("files", 10, {
       fileFilter: (req, file, cb) => {
@@ -53,8 +55,6 @@ export class ProjectController {
     @Request() req,
     @UploadedFiles() files?: Express.Multer.File[]
   ) {
-    this.checkPermission(req.user, "project:create");
-
     let fileUrls: string[] = [];
 
     // Upload files if they exist
@@ -72,6 +72,7 @@ export class ProjectController {
   }
 
   @Get()
+  @RequirePermission("project:read")
   findAll(
     @Query()
     query: PaginationDto & {
@@ -95,13 +96,12 @@ export class ProjectController {
     },
     @Request() req
   ) {
-    this.checkPermission(req.user, "project:read");
     return this.projectService.findAll(query, req.user.id, req.user.role?.name);
   }
 
   @Get("statistics")
+  @RequirePermission("project:read")
   getStatistics(@Request() req) {
-    this.checkPermission(req.user, "project:read");
     return this.projectService.getProjectStatistics(
       req.user.id,
       req.user.role?.name
@@ -119,18 +119,18 @@ export class ProjectController {
   }
 
   @Get(":id")
+  @RequirePermission("project:read")
   findOne(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "project:read");
     return this.projectService.findOne(id, req.user.id, req.user.role?.name);
   }
 
   @Patch(":id")
+  @RequirePermission("project:update")
   update(
     @Param("id") id: string,
     @Body() updateProjectDto: UpdateProjectDto,
     @Request() req
   ) {
-    this.checkPermission(req.user, "project:update");
     return this.projectService.update(
       id,
       updateProjectDto,
@@ -140,18 +140,18 @@ export class ProjectController {
   }
 
   @Delete(":id")
+  @RequirePermission("project:delete")
   remove(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "project:delete");
     return this.projectService.remove(id, req.user.id, req.user.role?.name);
   }
 
   @Post(":id/statuses")
+  @RequirePermission("project:update")
   addStatus(
     @Param("id") id: string,
     @Body() createStatusDto: CreateProjectStatusDto,
     @Request() req
   ) {
-    this.checkPermission(req.user, "project:update");
     return this.projectService.addStatus(
       id,
       createStatusDto,
@@ -161,8 +161,8 @@ export class ProjectController {
   }
 
   @Get(":id/statuses")
+  @RequirePermission("project:read")
   getStatuses(@Param("id") id: string, @Request() req) {
-    this.checkPermission(req.user, "project:read");
     return this.projectService.getStatuses(
       id,
       req.user.id,
@@ -171,13 +171,13 @@ export class ProjectController {
   }
 
   @Put(":id/indicators/:indicatorId/score")
+  @RequirePermission("project:update")
   updateIndicatorScore(
     @Param("id") id: string,
     @Param("indicatorId") indicatorId: string,
     @Body("score") score: number,
     @Request() req
   ) {
-    this.checkPermission(req.user, "project:update");
     return this.projectService.updateIndicatorScore(
       id,
       indicatorId,
@@ -185,13 +185,5 @@ export class ProjectController {
       req.user.id,
       req.user.role?.name
     );
-  }
-
-  private checkPermission(user: any, permission: string) {
-    if (!user.permissions.includes(permission)) {
-      throw new ForbiddenException(
-        `Insufficient permissions: ${permission} required`
-      );
-    }
   }
 }

@@ -257,7 +257,9 @@ model tbs_project_performance_indicator {
   id     String  @id @default(cuid())
   pillar String?
 
-  score Decimal? @db.Decimal(5, 2) // Score for the indicator in the project
+  expected_trend String? // Expected trend for the indicator in the project
+  expected_score Decimal? @db.Decimal(5, 2) // Expected score for the indicator in the project
+  score          Decimal? @db.Decimal(5, 2) // Score for the indicator in the project
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
