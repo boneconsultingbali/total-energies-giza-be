@@ -17,9 +17,22 @@ import { EmailService } from "@/email/email.service";
 import { Project } from "@/constants/project";
 
 interface ProjectSearchQuery extends PaginationDto {
+  // Direct project fields from schema
   status?: string;
+  country?: string; // Direct field on project
+  start_date?: string; // ISO date string
+  end_date?: string; // ISO date string
+  score?: number;
+
+  // Relationship fields
   owner_id?: string;
   tenant_id?: string;
+
+  // Array fields (support multiple values)
+  domains?: string; // Multiple values separated by commas
+  pillars?: string; // Multiple values separated by commas
+
+  // General search
   q?: string;
 }
 
@@ -88,6 +101,7 @@ export class ProjectService {
         status: createDto.status || Project.Status.Framing,
         score: createDto.score,
 
+        domains: createDto.domains || [],
         pillars: createDto.pillars || [],
         indicators: createDto.indicators
           ? {
@@ -175,8 +189,14 @@ export class ProjectService {
       sortBy,
       sortOrder = "desc",
       status,
+      country,
+      start_date,
+      end_date,
+      score,
       owner_id,
       tenant_id,
+      domains,
+      pillars,
       q,
     } = query;
     // Convert to numbers to avoid Prisma error
@@ -195,6 +215,7 @@ export class ProjectService {
           { code: { contains: searchTerm, mode: "insensitive" } },
           { name: { contains: searchTerm, mode: "insensitive" } },
           { description: { contains: searchTerm, mode: "insensitive" } },
+          { country: { contains: searchTerm, mode: "insensitive" } },
           { owner: { email: { contains: searchTerm, mode: "insensitive" } } },
           { tenant: { name: { contains: searchTerm, mode: "insensitive" } } },
         ],
@@ -206,6 +227,42 @@ export class ProjectService {
       searchConditions.push({ status });
     }
 
+    // Handle country filter (direct field on project)
+    if (country) {
+      const countries = country.split(",").map((c) => c.trim());
+      searchConditions.push({
+        country: {
+          in: countries,
+        },
+      });
+    }
+
+    // Handle date range filters
+    if (start_date) {
+      searchConditions.push({
+        start_date: {
+          gte: new Date(start_date),
+        },
+      });
+    }
+
+    if (end_date) {
+      searchConditions.push({
+        end_date: {
+          lte: new Date(end_date),
+        },
+      });
+    }
+
+    // Handle score filter
+    if (score !== undefined) {
+      searchConditions.push({
+        score: {
+          gte: score,
+        },
+      });
+    }
+
     // Handle owner filter
     if (owner_id) {
       searchConditions.push({ owner_id });
@@ -214,6 +271,26 @@ export class ProjectService {
     // Handle tenant filter
     if (tenant_id) {
       searchConditions.push({ tenant_id });
+    }
+
+    // Handle domains filter (array field)
+    if (domains) {
+      const domainList = domains.split(",").map((d) => d.trim());
+      searchConditions.push({
+        domains: {
+          hasSome: domainList,
+        },
+      });
+    }
+
+    // Handle pillars filter (array field)
+    if (pillars) {
+      const pillarList = pillars.split(",").map((p) => p.trim());
+      searchConditions.push({
+        pillars: {
+          hasSome: pillarList,
+        },
+      });
     }
 
     // Role-based access control
@@ -459,29 +536,38 @@ export class ProjectService {
       };
     }
 
+    // Build update data object dynamically
+    const updateData: any = {};
+
+    // Simple field updates
+    if (updateDto.code) updateData.code = updateDto.code;
+    if (updateDto.name) updateData.name = updateDto.name;
+    if (updateDto.description !== undefined)
+      updateData.description = updateDto.description;
+    if (updateDto.country) updateData.country = updateDto.country;
+    if (updateDto.status) updateData.status = updateDto.status;
+    if (updateDto.score !== undefined) updateData.score = updateDto.score;
+    if (updateDto.domains) updateData.domains = updateDto.domains;
+    if (updateDto.pillars) updateData.pillars = updateDto.pillars;
+
+    // Date field updates (with transformation)
+    if (updateDto.start_date)
+      updateData.start_date = new Date(updateDto.start_date);
+    if (updateDto.end_date) updateData.end_date = new Date(updateDto.end_date);
+
+    // Nullable field updates
+    if (updateDto.tenant_id !== undefined)
+      updateData.tenant_id = updateDto.tenant_id;
+    if (updateDto.owner_id) updateData.owner_id = updateDto.owner_id;
+
+    // Relation updates
+    if (updateDto.indicators) updateData.indicators = indicatorOperations;
+    if (Object.keys(statusOperations).length > 0)
+      updateData.statuses = statusOperations;
+
     const updatedProject = await this.prisma.tbm_project.update({
       where: { id },
-      data: {
-        ...(updateDto.code && { code: updateDto.code }),
-        ...(updateDto.name && { name: updateDto.name }),
-        ...(updateDto.description !== undefined && {
-          description: updateDto.description,
-        }),
-        ...(updateDto.start_date && {
-          start_date: new Date(updateDto.start_date),
-        }),
-        ...(updateDto.end_date && { end_date: new Date(updateDto.end_date) }),
-        ...(updateDto.status && { status: updateDto.status }),
-        ...(updateDto.score !== undefined && { score: updateDto.score }),
-        ...(updateDto.tenant_id !== undefined && {
-          tenant_id: updateDto.tenant_id,
-        }),
-        ...(updateDto.owner_id && { owner_id: updateDto.owner_id }),
-        ...(updateDto.indicators && { indicators: indicatorOperations }),
-        ...(Object.keys(statusOperations).length > 0 && {
-          statuses: statusOperations,
-        }),
-      },
+      data: updateData,
       include: {
         owner: {
           select: {
