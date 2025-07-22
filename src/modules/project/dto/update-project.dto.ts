@@ -1,15 +1,11 @@
 import {
   IsString,
   IsOptional,
-  IsDateString,
-  IsArray,
   IsNumber,
   MaxLength,
   Min,
   Max,
-  ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
 import { PartialType } from "@nestjs/mapped-types";
 import {
   CreateProjectDto,

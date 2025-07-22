@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   UploadedFile,
 } from "@nestjs/common";
+import { Express } from "express";
 import { DocumentService } from "./document.service";
 import { CreateDocumentDto } from "./dto/create-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";

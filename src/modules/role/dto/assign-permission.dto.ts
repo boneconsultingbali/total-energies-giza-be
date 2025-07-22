@@ -1,4 +1,4 @@
-import { IsArray, IsString, ValidateNested } from "class-validator";
+import { IsArray, IsString } from "class-validator";
 
 export class AssignPermissionDto {
   @IsArray()

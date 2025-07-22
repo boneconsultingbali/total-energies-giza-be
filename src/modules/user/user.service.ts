@@ -4,7 +4,6 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../database/prisma/prisma.service";
@@ -131,7 +130,7 @@ export class UserService {
       temporaryPassword: randomPassword,
     });
 
-    const { password, ...result } = user;
+    const { password: _password, ...result } = user;
     return result;
   }
 
@@ -338,7 +337,7 @@ export class UserService {
       },
     });
 
-    const { password, ...result } = updatedUser;
+    const { password: _password, ...result } = updatedUser;
     return result;
   }
 
@@ -395,7 +394,7 @@ export class UserService {
   }
 
   async activate(id: string) {
-    const user = await this.findOne(id);
+    await this.findOne(id);
 
     await this.prisma.tbm_user.update({
       where: { id },

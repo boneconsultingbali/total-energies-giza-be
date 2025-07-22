@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import { CreateTenantDto } from "./dto/create-tenant.dto";
@@ -463,7 +462,7 @@ export class TenantService {
   }
 
   async addEmployee(tenantId: string, userId: string) {
-    const tenant = await this.findOne(tenantId);
+    await this.findOne(tenantId);
 
     // Check if user exists and is active
     const user = await this.prisma.tbm_user.findUnique({
