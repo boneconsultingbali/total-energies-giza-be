@@ -185,6 +185,21 @@ export class ProjectService extends BaseService {
         );
       }
 
+      if (createDto.images?.length) {
+        operations.push(
+          tx.tbs_project_image.createMany({
+            data: createDto.images.map((url) => ({
+              project_id: project.id,
+              creator_id: user.id,
+
+              name: url.split("/").pop() || "Untitled Image",
+              image_url: url,
+              description: `Image uploaded on project creation`,
+            })),
+          })
+        );
+      }
+
       await Promise.all(operations);
 
       await tx.tbs_project_timeline.create({
@@ -509,6 +524,38 @@ export class ProjectService extends BaseService {
             status: updateDto.status,
             description: `Status changed to ${updateDto.status}`,
           },
+        });
+      }
+
+      if (updateDto.files && updateDto.files.length > 0) {
+        await tx.tbm_document.deleteMany({
+          where: { project_id: id },
+        });
+
+        await tx.tbm_document.createMany({
+          data: updateDto.files.map((url) => ({
+            name: url.split("/").pop() || "Untitled Document",
+            content: url,
+            tenant_id: existingProject.tenant_id || null,
+            project_id: id,
+          })),
+        });
+      }
+
+      if (updateDto.images && updateDto.images.length > 0) {
+        await tx.tbs_project_image.deleteMany({
+          where: { project_id: id },
+        });
+
+        await tx.tbs_project_image.createMany({
+          data: updateDto.images.map((url) => ({
+            project_id: id,
+            creator_id: user.id,
+
+            name: url.split("/").pop() || "Untitled Image",
+            image_url: url,
+            description: `Image updated on project update`,
+          })),
         });
       }
 

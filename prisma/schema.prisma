@@ -91,6 +91,7 @@ model tbm_user {
 
   owned_projects    tbm_project[]
   project_timelines tbs_project_timeline[]
+  project_images    tbs_project_image[]
 
   @@map("tbm_users")
 }
@@ -252,6 +253,7 @@ model tbm_project {
   statuses  tbs_project_status[]
   documents tbm_document[]
   timelines tbs_project_timeline[]
+  images    tbs_project_image[]
 
   @@map("tbm_projects")
 }
@@ -287,7 +289,7 @@ model tbs_project_status {
   project_id String
   project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
-  @@map("tbs_project_status")
+  @@map("tbs_project_statuses")
 }
 
 model tbs_project_timeline {
@@ -303,5 +305,22 @@ model tbs_project_timeline {
   creator_id String?
   creator    tbm_user? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
 
-  @@map("tbs_project_timeline")
+  @@map("tbs_project_timelines")
+}
+
+model tbs_project_image {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image_url   String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  project_id String
+  project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  creator_id String?
+  creator    tbm_user? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
+
+  @@map("tbs_project_images")
 }
