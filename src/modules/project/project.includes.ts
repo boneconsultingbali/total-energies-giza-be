@@ -207,6 +207,14 @@ export const PROJECT_DETAIL_INCLUDE: Prisma.tbm_projectInclude = {
       },
     },
   },
+  images: {
+    select: {
+      name: true,
+      description: true,
+      image_url: true,
+      created_at: true,
+    },
+  },
   indicators: {
     include: {
       indicator: {

@@ -88,6 +88,10 @@ export class CreateProjectDto {
   files?: string[];
 
   @IsOptional()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateProjectIndicatorDto)

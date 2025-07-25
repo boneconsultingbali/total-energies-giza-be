@@ -26,7 +26,7 @@ import {
   ProjectPerformanceValuePillars,
   ProjectStatuses,
 } from "@/constants/project";
-import { FilesInterceptor } from "@nestjs/platform-express";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AzureBlobStorageService } from "@/storage/azure-blob-storage/azure-blob-storage.service";
 
 @Controller("projects")
@@ -40,37 +40,53 @@ export class ProjectController {
   @Post()
   @RequirePermission("project:create")
   @UseInterceptors(
-    FilesInterceptor("files", 10, {
-      fileFilter: (req, file, cb) => {
-        // Accept all files, no filtering
-        cb(null, true);
-      },
-      limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB per file
-      },
-    })
+    FileFieldsInterceptor(
+      [
+        { name: "files", maxCount: 10 },
+        { name: "images", maxCount: 10 },
+      ],
+      {
+        fileFilter: (req, file, cb) => {
+          // Accept all files, no filtering
+          cb(null, true);
+        },
+        limits: {
+          fileSize: 10 * 1024 * 1024, // 10MB per file
+        },
+      }
+    )
   )
   async create(
     @Body() createProjectDto: CreateProjectDto,
     @Request() req,
-    @UploadedFiles() files?: Express.Multer.File[]
+    @UploadedFiles()
+    uploadedFiles?: {
+      files?: Express.Multer.File[];
+      images?: Express.Multer.File[];
+    }
   ) {
     let fileUrls: string[] = [];
+    let imageUrls: string[] = [];
 
     // Upload files if they exist
-    if (files && files.length > 0) {
-      fileUrls = await this.azureBlobStorageService.uploadFiles(files);
+    if (uploadedFiles?.files && uploadedFiles.files.length > 0) {
+      fileUrls = await this.azureBlobStorageService.uploadFiles(
+        uploadedFiles.files
+      );
     }
 
-    console.log({
-      body: createProjectDto,
-      files: fileUrls,
-    });
+    // Upload images if they exist
+    if (uploadedFiles?.images && uploadedFiles.images.length > 0) {
+      imageUrls = await this.azureBlobStorageService.uploadFiles(
+        uploadedFiles.images
+      );
+    }
 
     return this.projectService.create(
       {
         ...createProjectDto,
         files: fileUrls.length > 0 ? fileUrls : createProjectDto.files,
+        images: imageUrls.length > 0 ? imageUrls : createProjectDto.images,
       },
       req.user
     );
@@ -128,12 +144,59 @@ export class ProjectController {
 
   @Patch(":id")
   @RequirePermission("project:update")
-  update(
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: "files", maxCount: 10 },
+        { name: "images", maxCount: 10 },
+      ],
+      {
+        fileFilter: (req, file, cb) => {
+          // Accept all files, no filtering
+          cb(null, true);
+        },
+        limits: {
+          fileSize: 10 * 1024 * 1024, // 10MB per file
+        },
+      }
+    )
+  )
+  async update(
     @Param("id") id: string,
     @Body() updateProjectDto: UpdateProjectDto,
-    @Request() req
+    @Request() req,
+    @UploadedFiles()
+    uploadedFiles?: {
+      files?: Express.Multer.File[];
+      images?: Express.Multer.File[];
+    }
   ) {
-    return this.projectService.update(id, updateProjectDto, req.user);
+    let fileUrls: string[] = [];
+    let imageUrls: string[] = [];
+
+    // Upload files if they exist
+    if (uploadedFiles?.files && uploadedFiles.files.length > 0) {
+      fileUrls = await this.azureBlobStorageService.uploadFiles(
+        uploadedFiles.files
+      );
+    }
+
+    // Upload images if they exist
+    if (uploadedFiles?.images && uploadedFiles.images.length > 0) {
+      imageUrls = await this.azureBlobStorageService.uploadFiles(
+        uploadedFiles.images
+      );
+    }
+
+    return this.projectService.update(
+      id,
+      {
+        ...updateProjectDto,
+        files: fileUrls.length > 0 ? fileUrls : updateProjectDto.files,
+        images: imageUrls.length > 0 ? imageUrls : updateProjectDto.images,
+      },
+      req.user
+    );
   }
 
   @Delete(":id")
