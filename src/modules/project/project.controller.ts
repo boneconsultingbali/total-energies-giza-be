@@ -72,7 +72,7 @@ export class ProjectController {
         ...createProjectDto,
         files: fileUrls.length > 0 ? fileUrls : createProjectDto.files,
       },
-      req.user.id
+      req.user
     );
   }
 
@@ -101,16 +101,13 @@ export class ProjectController {
     },
     @Request() req
   ) {
-    return this.projectService.findAll(query, req.user.id, req.user.role?.name);
+    return this.projectService.findAll(query, req.user);
   }
 
   @Get("statistics")
   @RequirePermission("project:read")
   getStatistics(@Request() req) {
-    return this.projectService.getProjectStatistics(
-      req.user.id,
-      req.user.role?.name
-    );
+    return this.projectService.getProjectStatistics(req.user);
   }
 
   @Get("statuses")
@@ -126,7 +123,7 @@ export class ProjectController {
   @Get(":id")
   @RequirePermission("project:read")
   findOne(@Param("id") id: string, @Request() req) {
-    return this.projectService.findOne(id, req.user.id, req.user.role?.name);
+    return this.projectService.findOne(id, req.user);
   }
 
   @Patch(":id")
@@ -136,18 +133,13 @@ export class ProjectController {
     @Body() updateProjectDto: UpdateProjectDto,
     @Request() req
   ) {
-    return this.projectService.update(
-      id,
-      updateProjectDto,
-      req.user.id,
-      req.user.role?.name
-    );
+    return this.projectService.update(id, updateProjectDto, req.user);
   }
 
   @Delete(":id")
   @RequirePermission("project:delete")
   remove(@Param("id") id: string, @Request() req) {
-    return this.projectService.remove(id, req.user.id, req.user.role?.name);
+    return this.projectService.remove(id, req.user);
   }
 
   @Post(":id/statuses")
@@ -157,22 +149,13 @@ export class ProjectController {
     @Body() createStatusDto: CreateProjectStatusDto,
     @Request() req
   ) {
-    return this.projectService.addStatus(
-      id,
-      createStatusDto,
-      req.user.id,
-      req.user.role?.name
-    );
+    return this.projectService.addStatus(id, createStatusDto, req.user);
   }
 
   @Get(":id/statuses")
   @RequirePermission("project:read")
   getStatuses(@Param("id") id: string, @Request() req) {
-    return this.projectService.getStatuses(
-      id,
-      req.user.id,
-      req.user.role?.name
-    );
+    return this.projectService.getStatuses(id, req.user);
   }
 
   @Put(":id/indicators/:indicatorId/score")
@@ -187,8 +170,7 @@ export class ProjectController {
       id,
       indicatorId,
       score,
-      req.user.id,
-      req.user.role?.name
+      req.user
     );
   }
 }

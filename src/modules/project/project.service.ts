@@ -20,6 +20,7 @@ import {
   buildProjectInclude,
   PROJECT_DETAIL_INCLUDE,
 } from "./project.includes";
+import { CurrentUser } from "../../types/user.types";
 
 interface ProjectSearchQuery extends PaginationDto {
   // Direct project fields from schema
@@ -50,8 +51,8 @@ export class ProjectService extends BaseService {
     super(prisma);
   }
 
-  async create(createDto: CreateProjectDto, userId: string) {
-    this.logOperation("Creating project", undefined, userId);
+  async create(createDto: CreateProjectDto, user: CurrentUser) {
+    this.logOperation("Creating project", undefined, user.id);
 
     return this.executeTransaction(async (tx) => {
       // Validate project code uniqueness
@@ -136,7 +137,7 @@ export class ProjectService extends BaseService {
           domains: this.validateArrayField(createDto.domains, "domains"),
           pillars: this.validateArrayField(createDto.pillars, "pillars"),
           tenant_id: createDto.tenant_id || null,
-          owner_id: createDto.owner_id || userId,
+          owner_id: createDto.owner_id || user.id,
         },
       });
 
@@ -186,6 +187,16 @@ export class ProjectService extends BaseService {
 
       await Promise.all(operations);
 
+      await tx.tbs_project_timeline.create({
+        data: {
+          project_id: project.id,
+          creator_id: user.id,
+
+          event: "Project created",
+          description: "Initial project creation",
+        },
+      });
+
       // Return the complete project
       return await tx.tbm_project.findUnique({
         where: { id: project.id },
@@ -196,8 +207,7 @@ export class ProjectService extends BaseService {
 
   async findAll(
     query: ProjectSearchQuery,
-    userId: string,
-    userRole: string
+    user: CurrentUser
   ): Promise<PaginatedResult<any>> {
     const {
       page = 1,
@@ -217,7 +227,7 @@ export class ProjectService extends BaseService {
       q,
     } = query;
 
-    this.logOperation("Finding all projects", undefined, userId);
+    this.logOperation("Finding all projects", undefined, user.id);
 
     // Convert to numbers and build pagination
     const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
@@ -284,8 +294,8 @@ export class ProjectService extends BaseService {
 
     // Access control
     const accessConditions = this.buildAccessControlConditions({
-      userId,
-      userRole,
+      userId: user.id,
+      userRole: user.role?.name,
       checkOwnership: true,
       checkTenantAccess: true,
     });
@@ -317,8 +327,8 @@ export class ProjectService extends BaseService {
     };
   }
 
-  async findOne(id: string, userId: string, userRole: string) {
-    this.logOperation("Finding project", id, userId);
+  async findOne(id: string, user: CurrentUser) {
+    this.logOperation("Finding project", id, user.id);
 
     const project = await this.prisma.tbm_project.findUnique({
       where: { id },
@@ -331,8 +341,8 @@ export class ProjectService extends BaseService {
 
     // Check access
     const hasAccess = await this.checkEntityAccess(project, {
-      userId,
-      userRole,
+      userId: user.id,
+      userRole: user.role?.name,
       checkOwnership: true,
       checkTenantAccess: true,
     });
@@ -344,13 +354,8 @@ export class ProjectService extends BaseService {
     return project;
   }
 
-  async update(
-    id: string,
-    updateDto: UpdateProjectDto,
-    userId: string,
-    userRole: string
-  ) {
-    this.logOperation("Updating project", id, userId);
+  async update(id: string, updateDto: UpdateProjectDto, user: CurrentUser) {
+    this.logOperation("Updating project", id, user.id);
 
     return this.executeTransaction(async (tx) => {
       // Verify project exists and check access
@@ -364,8 +369,8 @@ export class ProjectService extends BaseService {
       }
 
       const hasAccess = await this.checkEntityAccess(existingProject, {
-        userId,
-        userRole,
+        userId: user.id,
+        userRole: user.role?.name,
         checkOwnership: true,
         checkTenantAccess: true,
       });
@@ -507,6 +512,16 @@ export class ProjectService extends BaseService {
         });
       }
 
+      // Create timeline entry for update
+      await tx.tbs_project_timeline.create({
+        data: {
+          project_id: id,
+          creator_id: user.id,
+          event: "Project updated",
+          description: `Project updated by ${user.profile?.first_name || user.email}`,
+        },
+      });
+
       // Return updated project with all relations
       return await tx.tbm_project.findUnique({
         where: { id },
@@ -515,8 +530,8 @@ export class ProjectService extends BaseService {
     });
   }
 
-  async remove(id: string, userId: string, userRole: string) {
-    this.logOperation("Removing project", id, userId);
+  async remove(id: string, user: CurrentUser) {
+    this.logOperation("Removing project", id, user.id);
 
     return this.executeTransaction(async (tx) => {
       const project = await tx.tbm_project.findUnique({
@@ -529,8 +544,8 @@ export class ProjectService extends BaseService {
       }
 
       const hasAccess = await this.checkEntityAccess(project, {
-        userId,
-        userRole,
+        userId: user.id,
+        userRole: user.role?.name,
         checkOwnership: true,
         checkTenantAccess: true,
       });
@@ -540,7 +555,7 @@ export class ProjectService extends BaseService {
       }
 
       // Only allow deletion by project owner or admin/superadmin
-      if (userRole === "user" && project.owner_id !== userId) {
+      if (user.role?.name === "user" && project.owner_id !== user.id) {
         throw new ForbiddenException(
           "Only project owner can delete the project"
         );
@@ -554,10 +569,9 @@ export class ProjectService extends BaseService {
   async addStatus(
     projectId: string,
     createStatusDto: CreateProjectStatusDto,
-    userId: string,
-    userRole: string
+    user: CurrentUser
   ) {
-    this.logOperation("Adding project status", projectId, userId);
+    this.logOperation("Adding project status", projectId, user.id);
 
     return this.executeTransaction(async (tx) => {
       const project = await tx.tbm_project.findUnique({
@@ -589,8 +603,8 @@ export class ProjectService extends BaseService {
       }
 
       const hasAccess = await this.checkEntityAccess(project, {
-        userId,
-        userRole,
+        userId: user.id,
+        userRole: user.role?.name,
         checkOwnership: true,
         checkTenantAccess: true,
       });
@@ -615,7 +629,7 @@ export class ProjectService extends BaseService {
       });
 
       // Send status update email to project owner if different from current user
-      if (project.owner && project.owner.id !== userId) {
+      if (project.owner && project.owner.id !== user.id) {
         const ownerName = project.owner.profile?.first_name
           ? `${project.owner.profile.first_name} ${project.owner.profile.last_name || ""}`.trim()
           : project.owner.email;
@@ -637,15 +651,25 @@ export class ProjectService extends BaseService {
         });
       }
 
+      // Create timeline entry for status change
+      await tx.tbs_project_timeline.create({
+        data: {
+          project_id: projectId,
+          creator_id: user.id,
+          event: "Project status updated",
+          description: `Status changed to ${createStatusDto.status} by ${user.profile?.first_name || user.email}`,
+        },
+      });
+
       return status;
     });
   }
 
-  async getStatuses(projectId: string, userId: string, userRole: string) {
-    this.logOperation("Getting project statuses", projectId, userId);
+  async getStatuses(projectId: string, user: CurrentUser) {
+    this.logOperation("Getting project statuses", projectId, user.id);
 
     // Verify access to project first
-    await this.findOne(projectId, userId, userRole);
+    await this.findOne(projectId, user);
 
     return this.prisma.tbs_project_status.findMany({
       where: { project_id: projectId },
@@ -657,10 +681,9 @@ export class ProjectService extends BaseService {
     projectId: string,
     indicatorId: string,
     score: number,
-    userId: string,
-    userRole: string
+    user: CurrentUser
   ) {
-    this.logOperation("Updating indicator score", projectId, userId);
+    this.logOperation("Updating indicator score", projectId, user.id);
 
     return this.executeTransaction(async (tx) => {
       // Verify project access
@@ -674,8 +697,8 @@ export class ProjectService extends BaseService {
       }
 
       const hasAccess = await this.checkEntityAccess(project, {
-        userId,
-        userRole,
+        userId: user.id,
+        userRole: user.role?.name,
         checkOwnership: true,
         checkTenantAccess: true,
       });
@@ -730,12 +753,12 @@ export class ProjectService extends BaseService {
     });
   }
 
-  async getProjectStatistics(userId: string, userRole: string) {
-    this.logOperation("Getting project statistics", undefined, userId);
+  async getProjectStatistics(user: CurrentUser) {
+    this.logOperation("Getting project statistics", undefined, user.id);
 
     const accessConditions = this.buildAccessControlConditions({
-      userId,
-      userRole,
+      userId: user.id,
+      userRole: user.role?.name,
       checkOwnership: true,
       checkTenantAccess: true,
     });
@@ -772,6 +795,7 @@ export class ProjectService extends BaseService {
   /**
    * Private helper methods
    */
+
   private async recalculateProjectScore(tx: any, projectId: string) {
     const indicators = await tx.tbs_project_performance_indicator.findMany({
       where: { project_id: projectId },
