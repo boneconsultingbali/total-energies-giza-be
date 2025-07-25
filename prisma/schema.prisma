@@ -86,9 +86,11 @@ model tbm_user {
   branch_or_acronym String?
 
   leader_tenants tbm_tenant[]       @relation("tenant_leader")
-  owned_projects tbm_project[]
   login_logs     tbm_login_log[]
   user_sessions  tbm_user_session[]
+
+  owned_projects    tbm_project[]
+  project_timelines tbs_project_timeline[]
 
   @@map("tbm_users")
 }
@@ -249,6 +251,7 @@ model tbm_project {
 
   statuses  tbs_project_status[]
   documents tbm_document[]
+  timelines tbs_project_timeline[]
 
   @@map("tbm_projects")
 }
@@ -285,4 +288,20 @@ model tbs_project_status {
   project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
   @@map("tbs_project_status")
+}
+
+model tbs_project_timeline {
+  id          String   @id @default(cuid())
+  event       String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  project_id String
+  project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  creator_id String?
+  creator    tbm_user? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
+
+  @@map("tbs_project_timeline")
 }

@@ -187,6 +187,26 @@ export const PROJECT_DETAIL_INCLUDE: Prisma.tbm_projectInclude = {
       address: true,
     },
   },
+  timelines: {
+    include: {
+      creator: {
+        select: {
+          id: true,
+          email: true,
+          code: true,
+          is_active: true,
+          profile: {
+            select: {
+              first_name: true,
+              last_name: true,
+              avatar: true,
+              phone: true,
+            },
+          },
+        },
+      },
+    },
+  },
   indicators: {
     include: {
       indicator: {
