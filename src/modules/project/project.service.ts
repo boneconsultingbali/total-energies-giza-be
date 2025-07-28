@@ -14,7 +14,7 @@ import {
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
 import { EmailService } from "@/email/email.service";
-import { Project } from "@/constants/project";
+import { Project, ProjectStatusColors } from "@/constants/project";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import {
   buildProjectInclude,
@@ -908,41 +908,14 @@ export class ProjectService extends BaseService {
     const project = await this.findOne(projectId, user);
 
     // Get all timeline activities for the project
-    const timelineActivities = await this.prisma.tbs_project_timeline.findMany({
-      where: { project_id: projectId },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true,
-            profile: {
-              select: {
-                first_name: true,
-                last_name: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { created_at: "asc" },
-    });
-
-    // Define status colors mapping
-    const statusColors = {
-      Framing: "#FFB366",
-      Qualification: "#6BB6FF",
-      "Problem Solving": "#FFE066",
-      Testing: "#FFCC80",
-      Scale: "#B19CD9",
-      "Deployment Planning": "#A8C8EC",
-      Deployment: "#A8D8A8",
-    };
+    const timelineActivities =
+      await this.getProjectTimelineActivities(projectId);
 
     // Group activities by project phases/statuses
     const timeline = this.buildTimelineByPhases(
       project,
       timelineActivities,
-      statusColors
+      ProjectStatusColors
     );
 
     return timeline;
@@ -1152,60 +1125,156 @@ export class ProjectService extends BaseService {
    * Private helper methods
    */
 
+  private async getProjectTimelineActivities(projectId: string) {
+    return await this.prisma.tbs_project_timeline.findMany({
+      where: { project_id: projectId },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                first_name: true,
+                last_name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { created_at: "asc" },
+    });
+  }
+
+  private getProjectPhases(): string[] {
+    return [
+      Project.Status.Framing,
+      Project.Status.Qualification,
+      Project.Status.ProblemSolving,
+      Project.Status.Testing,
+      Project.Status.Scale,
+      Project.Status.DeploymentPlanning,
+      Project.Status.Deployment,
+    ];
+  }
+
+  private calculateProjectDuration(startDate: Date, endDate: Date): number {
+    return Math.max(
+      1,
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+    );
+  }
+
+  private calculatePhaseEndDate(
+    startDate: Date,
+    duration: number,
+    isLastPhase: boolean,
+    projectEndDate: Date
+  ): Date {
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + duration - 1);
+
+    // Ensure last phase ends on project end date
+    if (isLastPhase) {
+      endDate.setTime(projectEndDate.getTime());
+    }
+
+    return endDate;
+  }
+
+  private getPhaseActivities(
+    activities: any[],
+    phaseStartDate: Date,
+    phaseEndDate: Date
+  ): any[] {
+    return activities.filter((activity) => {
+      const activityDate = new Date(activity.created_at);
+      return activityDate >= phaseStartDate && activityDate <= phaseEndDate;
+    });
+  }
+
+  private createDefaultPhaseActivity(
+    phase: string,
+    phaseStartDate: Date,
+    projectOwner: any
+  ) {
+    return [
+      {
+        event: `${phase} Started`,
+        description: `Project entered ${phase} phase`,
+        created_at: phaseStartDate,
+        creator: projectOwner || null,
+      },
+    ];
+  }
+
+  private formatCreatorName(creator: any): string {
+    if (!creator) return "System";
+
+    if (creator.profile?.first_name) {
+      return `${creator.profile.first_name} ${creator.profile.last_name || ""}`.trim();
+    }
+
+    return creator.email;
+  }
+
+  private mapActivitiesToTimelineFormat(activities: any[]) {
+    return activities.map((activity) => ({
+      event: activity.event,
+      description: activity.description || `${activity.event} activity`,
+      date: activity.created_at.toISOString(),
+      creator: {
+        name: this.formatCreatorName(activity.creator),
+      },
+    }));
+  }
+
   private buildTimelineByPhases(
     project: any,
     timelineActivities: any[],
     statusColors: Record<string, string>
   ) {
-    // Define project phases based on status progression
-    const phases = [
-      "Framing",
-      "Qualification",
-      "Problem Solving",
-      "Testing",
-      "Scale",
-      "Deployment Planning",
-      "Deployment",
-    ];
+    const phases = this.getProjectPhases();
 
     // Calculate phase date ranges based on project dates and activities
     const projectStartDate = project.start_date || new Date();
     const projectEndDate = project.end_date || new Date();
 
     // Calculate phase duration
-    const totalDays = Math.max(
-      1,
-      Math.ceil((projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24))
+    const totalDays = this.calculateProjectDuration(
+      projectStartDate,
+      projectEndDate
     );
     const phaseDuration = Math.ceil(totalDays / phases.length);
 
-    const timeline = phases.map((phase, index) => {
+    return phases.map((phase, index) => {
       // Calculate phase dates
       const phaseStartDate = new Date(projectStartDate);
       phaseStartDate.setDate(phaseStartDate.getDate() + index * phaseDuration);
 
-      const phaseEndDate = new Date(phaseStartDate);
-      phaseEndDate.setDate(phaseEndDate.getDate() + phaseDuration - 1);
-
-      // Ensure last phase ends on project end date
-      if (index === phases.length - 1) {
-        phaseEndDate.setTime(projectEndDate.getTime());
-      }
+      const phaseEndDate = this.calculatePhaseEndDate(
+        phaseStartDate,
+        phaseDuration,
+        index === phases.length - 1,
+        projectEndDate
+      );
 
       // Get activities for this phase
-      const phaseActivities = timelineActivities.filter((activity) => {
-        const activityDate = new Date(activity.created_at);
-        return activityDate >= phaseStartDate && activityDate <= phaseEndDate;
-      });
+      let phaseActivities = this.getPhaseActivities(
+        timelineActivities,
+        phaseStartDate,
+        phaseEndDate
+      );
 
-      // If no specific activities for this phase, create a default one
+      // If no specific activities for this phase and it's the first phase, create a default one
       if (phaseActivities.length === 0 && index === 0) {
-        phaseActivities.push({
-          event: `${phase} Started`,
-          description: `Project entered ${phase} phase`,
-          created_at: phaseStartDate,
-          creator: project.owner || null,
-        });
+        phaseActivities = this.createDefaultPhaseActivity(
+          phase,
+          phaseStartDate,
+          project.owner
+        );
       }
 
       return {
@@ -1213,22 +1282,9 @@ export class ProjectService extends BaseService {
         startDate: phaseStartDate.toISOString().split("T")[0],
         endDate: phaseEndDate.toISOString().split("T")[0],
         color: statusColors[phase] || "#CCCCCC",
-        activities: phaseActivities.map((activity) => ({
-          event: activity.event,
-          description: activity.description || `${activity.event} activity`,
-          date: activity.created_at.toISOString(),
-          creator: {
-            name: activity.creator
-              ? activity.creator.profile?.first_name
-                ? `${activity.creator.profile.first_name} ${activity.creator.profile.last_name || ""}`.trim()
-                : activity.creator.email
-              : "System",
-          },
-        })),
+        activities: this.mapActivitiesToTimelineFormat(phaseActivities),
       };
     });
-
-    return timeline;
   }
 
   private async recalculateProjectScore(tx: any, projectId: string) {

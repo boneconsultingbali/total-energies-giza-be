@@ -76,6 +76,8 @@ type ProjectTimelineResponse = ProjectTimelinePhase[];
 
 ## Phase Colors
 
+Phase colors are defined in the project constants and automatically applied:
+
 - **Framing**: #FFB366 (Orange)
 - **Qualification**: #6BB6FF (Blue)
 - **Problem Solving**: #FFE066 (Yellow)
@@ -83,6 +85,8 @@ type ProjectTimelineResponse = ProjectTimelinePhase[];
 - **Scale**: #B19CD9 (Purple)
 - **Deployment Planning**: #A8C8EC (Light Blue)
 - **Deployment**: #A8D8A8 (Green)
+
+Colors are centrally managed in `/src/constants/project.ts` as `ProjectStatusColors`.
 
 ## Authentication
 
