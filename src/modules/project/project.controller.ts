@@ -18,6 +18,7 @@ import { ProjectService } from "./project.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { CreateProjectStatusDto } from "./dto/create-project-status.dto";
+import { ProjectTimelineResponse } from "./dto/project-timeline-response.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
@@ -142,9 +143,13 @@ export class ProjectController {
     return this.projectService.getProjectPerformancePyramidById(id, req.user);
   }
 
-  @Get("performance-pyramid/:id")
-  getProjectPerformancePyramidById(@Param("id") id: string, @Request() req) {
-    return this.projectService.getProjectPerformancePyramidById(id, req.user);
+  @Get("timeline/:id")
+  @RequirePermission("project:read")
+  getProjectTimeline(
+    @Param("id") id: string,
+    @Request() req
+  ): Promise<ProjectTimelineResponse> {
+    return this.projectService.getProjectTimelineById(id, req.user);
   }
 
   @Get(":id")

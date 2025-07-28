@@ -21,6 +21,7 @@ import {
   PROJECT_DETAIL_INCLUDE,
 } from "./project.includes";
 import { CurrentUser } from "../../types/user.types";
+import { ProjectTimelineResponse } from "./dto/project-timeline-response.dto";
 
 interface ProjectSearchQuery extends PaginationDto {
   // Direct project fields from schema
@@ -897,6 +898,56 @@ export class ProjectService extends BaseService {
     };
   }
 
+  async getProjectTimelineById(
+    projectId: string,
+    user: CurrentUser
+  ): Promise<ProjectTimelineResponse> {
+    this.logOperation("Getting project timeline", projectId, user.id);
+
+    // Verify access to project first
+    const project = await this.findOne(projectId, user);
+
+    // Get all timeline activities for the project
+    const timelineActivities = await this.prisma.tbs_project_timeline.findMany({
+      where: { project_id: projectId },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                first_name: true,
+                last_name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { created_at: "asc" },
+    });
+
+    // Define status colors mapping
+    const statusColors = {
+      Framing: "#FFB366",
+      Qualification: "#6BB6FF",
+      "Problem Solving": "#FFE066",
+      Testing: "#FFCC80",
+      Scale: "#B19CD9",
+      "Deployment Planning": "#A8C8EC",
+      Deployment: "#A8D8A8",
+    };
+
+    // Group activities by project phases/statuses
+    const timeline = this.buildTimelineByPhases(
+      project,
+      timelineActivities,
+      statusColors
+    );
+
+    return timeline;
+  }
+
   private buildPyramidStructure(
     projectIndicators: any[],
     allIndicators: any[],
@@ -1100,6 +1151,85 @@ export class ProjectService extends BaseService {
   /**
    * Private helper methods
    */
+
+  private buildTimelineByPhases(
+    project: any,
+    timelineActivities: any[],
+    statusColors: Record<string, string>
+  ) {
+    // Define project phases based on status progression
+    const phases = [
+      "Framing",
+      "Qualification",
+      "Problem Solving",
+      "Testing",
+      "Scale",
+      "Deployment Planning",
+      "Deployment",
+    ];
+
+    // Calculate phase date ranges based on project dates and activities
+    const projectStartDate = project.start_date || new Date();
+    const projectEndDate = project.end_date || new Date();
+
+    // Calculate phase duration
+    const totalDays = Math.max(
+      1,
+      Math.ceil((projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24))
+    );
+    const phaseDuration = Math.ceil(totalDays / phases.length);
+
+    const timeline = phases.map((phase, index) => {
+      // Calculate phase dates
+      const phaseStartDate = new Date(projectStartDate);
+      phaseStartDate.setDate(phaseStartDate.getDate() + index * phaseDuration);
+
+      const phaseEndDate = new Date(phaseStartDate);
+      phaseEndDate.setDate(phaseEndDate.getDate() + phaseDuration - 1);
+
+      // Ensure last phase ends on project end date
+      if (index === phases.length - 1) {
+        phaseEndDate.setTime(projectEndDate.getTime());
+      }
+
+      // Get activities for this phase
+      const phaseActivities = timelineActivities.filter((activity) => {
+        const activityDate = new Date(activity.created_at);
+        return activityDate >= phaseStartDate && activityDate <= phaseEndDate;
+      });
+
+      // If no specific activities for this phase, create a default one
+      if (phaseActivities.length === 0 && index === 0) {
+        phaseActivities.push({
+          event: `${phase} Started`,
+          description: `Project entered ${phase} phase`,
+          created_at: phaseStartDate,
+          creator: project.owner || null,
+        });
+      }
+
+      return {
+        name: phase,
+        startDate: phaseStartDate.toISOString().split("T")[0],
+        endDate: phaseEndDate.toISOString().split("T")[0],
+        color: statusColors[phase] || "#CCCCCC",
+        activities: phaseActivities.map((activity) => ({
+          event: activity.event,
+          description: activity.description || `${activity.event} activity`,
+          date: activity.created_at.toISOString(),
+          creator: {
+            name: activity.creator
+              ? activity.creator.profile?.first_name
+                ? `${activity.creator.profile.first_name} ${activity.creator.profile.last_name || ""}`.trim()
+                : activity.creator.email
+              : "System",
+          },
+        })),
+      };
+    });
+
+    return timeline;
+  }
 
   private async recalculateProjectScore(tx: any, projectId: string) {
     const indicators = await tx.tbs_project_performance_indicator.findMany({
