@@ -136,6 +136,17 @@ export class ProjectController {
     return ProjectPerformanceValuePillars;
   }
 
+  @Get("performance-pyramid/:id")
+  @RequirePermission("project:read")
+  getProjectPerformancePyramid(@Param("id") id: string, @Request() req) {
+    return this.projectService.getProjectPerformancePyramidById(id, req.user);
+  }
+
+  @Get("performance-pyramid/:id")
+  getProjectPerformancePyramidById(@Param("id") id: string, @Request() req) {
+    return this.projectService.getProjectPerformancePyramidById(id, req.user);
+  }
+
   @Get(":id")
   @RequirePermission("project:read")
   findOne(@Param("id") id: string, @Request() req) {
