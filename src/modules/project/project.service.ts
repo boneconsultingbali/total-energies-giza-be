@@ -14,13 +14,14 @@ import {
   PaginatedResult,
 } from "../../common/dto/pagination.dto";
 import { EmailService } from "@/email/email.service";
-import { Project } from "@/constants/project";
+import { Project, ProjectStatusColors } from "@/constants/project";
 import { PrismaService } from "../../database/prisma/prisma.service";
 import {
   buildProjectInclude,
   PROJECT_DETAIL_INCLUDE,
 } from "./project.includes";
 import { CurrentUser } from "../../types/user.types";
+import { ProjectTimelineResponse } from "./dto/project-timeline-response.dto";
 
 interface ProjectSearchQuery extends PaginationDto {
   // Direct project fields from schema
@@ -839,9 +840,452 @@ export class ProjectService extends BaseService {
     };
   }
 
+  async getProjectPerformancePyramidById(projectId: string, user: CurrentUser) {
+    this.logOperation(
+      "Getting project performance pyramid",
+      projectId,
+      user.id
+    );
+
+    // Verify access to project first
+    await this.findOne(projectId, user);
+
+    // Get project performance indicators with their scores
+    const projectIndicators =
+      await this.prisma.tbs_project_performance_indicator.findMany({
+        where: { project_id: projectId },
+        include: {
+          indicator: {
+            include: {
+              parent: true,
+              children: true,
+            },
+          },
+        },
+      });
+
+    // Get all performance indicators to understand the hierarchy
+    const allIndicators = await this.prisma.tbm_performance_indicator.findMany({
+      include: {
+        parent: true,
+        children: true,
+      },
+    });
+
+    // Group indicators by pillar
+    const groupedByPillar = {
+      Operating: this.buildPyramidStructure(
+        projectIndicators,
+        allIndicators,
+        "Operating"
+      ),
+      Environmental: this.buildPyramidStructure(
+        projectIndicators,
+        allIndicators,
+        "Environmental"
+      ),
+      Safety: this.buildPyramidStructure(
+        projectIndicators,
+        allIndicators,
+        "Safety"
+      ),
+    };
+
+    return {
+      operatingPerformanceData: groupedByPillar.Operating,
+      environmentalPerformanceData: groupedByPillar.Environmental,
+      safetyPerformanceData: groupedByPillar.Safety,
+    };
+  }
+
+  async getProjectTimelineById(
+    projectId: string,
+    user: CurrentUser
+  ): Promise<ProjectTimelineResponse> {
+    this.logOperation("Getting project timeline", projectId, user.id);
+
+    // Verify access to project first
+    const project = await this.findOne(projectId, user);
+
+    // Get all timeline activities for the project
+    const timelineActivities =
+      await this.getProjectTimelineActivities(projectId);
+
+    // Group activities by project phases/statuses
+    const timeline = this.buildTimelineByPhases(
+      project,
+      timelineActivities,
+      ProjectStatusColors
+    );
+
+    return timeline;
+  }
+
+  private buildPyramidStructure(
+    projectIndicators: any[],
+    allIndicators: any[],
+    pillar: string
+  ) {
+    // Filter indicators by pillar
+    const pillarIndicators = allIndicators.filter(
+      (ind) => ind.pillar === pillar
+    );
+
+    // Get root level indicators (those without parents)
+    const rootIndicators = pillarIndicators.filter((ind) => !ind.parent_id);
+
+    // Build the pyramid structure
+    const pyramidData = rootIndicators.map((rootIndicator) => {
+      const level = this.calculateLevel(rootIndicator, pillarIndicators);
+      const hasChildren =
+        rootIndicator.children && rootIndicator.children.length > 0;
+
+      // Find project expected_score for this indicator
+      const projectIndicator = projectIndicators.find(
+        (pi) => pi.indicator_id === rootIndicator.id
+      );
+      const score = projectIndicator?.expected_score
+        ? parseFloat(projectIndicator.expected_score)
+        : null;
+
+      const baseStructure: any = {
+        name: rootIndicator.name,
+        level: level,
+        onprogress: this.determineProgressStatus(score, rootIndicator.is_grey),
+        progressItem: this.buildProgressItems(rootIndicator, projectIndicator),
+      };
+
+      // If has children, build subchild structure
+      if (hasChildren) {
+        baseStructure.subchild = rootIndicator.children.map(
+          (child, childIndex) => {
+            const childProjectIndicator = projectIndicators.find(
+              (pi) => pi.indicator_id === child.id
+            );
+            const childScore = childProjectIndicator?.expected_score
+              ? parseFloat(childProjectIndicator.expected_score)
+              : null;
+
+            return {
+              subLevel: childIndex + 1,
+              name: child.name,
+              onprogress: this.determineProgressStatus(
+                childScore,
+                child.is_grey
+              ),
+              progressItem: this.buildProgressItems(
+                child,
+                childProjectIndicator
+              ),
+            };
+          }
+        );
+      }
+
+      return baseStructure;
+    });
+
+    // Add additional levels based on hierarchy depth
+    const allLevelIndicators = pillarIndicators.filter((ind) => ind.parent_id);
+    const additionalLevels = this.buildAdditionalLevels(
+      allLevelIndicators,
+      projectIndicators,
+      rootIndicators
+    );
+
+    return [...pyramidData, ...additionalLevels];
+  }
+
+  private calculateLevel(indicator: any, allIndicators: any[]): number {
+    // Calculate level based on hierarchy depth
+    let level = 1;
+    const descendants = this.getDescendants(indicator, allIndicators);
+
+    if (descendants.length === 0) {
+      // Leaf nodes get higher levels
+      level = 4;
+    } else if (descendants.length <= 2) {
+      level = 3;
+    } else if (descendants.length <= 5) {
+      level = 2;
+    } else {
+      level = 1;
+    }
+
+    return level;
+  }
+
+  private getDescendants(indicator: any, allIndicators: any[]): any[] {
+    const children = allIndicators.filter(
+      (ind) => ind.parent_id === indicator.id
+    );
+    let descendants = [...children];
+
+    children.forEach((child) => {
+      descendants = [
+        ...descendants,
+        ...this.getDescendants(child, allIndicators),
+      ];
+    });
+
+    return descendants;
+  }
+
+  private determineProgressStatus(
+    score: number | null,
+    isGrey: boolean
+  ): boolean {
+    if (isGrey) return false;
+    if (score === null) return true;
+    return score < 100;
+  }
+
+  private buildProgressItems(
+    indicator: any,
+    projectIndicator: any
+  ): Array<{ field: string; value: string }> {
+    const items = [];
+
+    // Use the indicator name as the main field
+    let value = "0%";
+
+    if (projectIndicator?.expected_score) {
+      const scoreValue = Math.round(
+        parseFloat(projectIndicator.expected_score)
+      );
+
+      // Add + or - based on expected_trend
+      let trendSymbol = "";
+      if (projectIndicator.expected_trend === "increase") {
+        trendSymbol = "+";
+      } else if (projectIndicator.expected_trend === "decrease") {
+        trendSymbol = "-";
+      }
+
+      // Use absolute value and apply trend symbol
+      const absoluteScore = Math.abs(scoreValue);
+      value = `${trendSymbol}${absoluteScore}%`;
+    } else {
+      // Set to 0% when expected_score is not found in tbs_project_performance_indicator
+      value = "0%";
+    }
+
+    items.push({
+      field: indicator.name,
+      value: value,
+    });
+
+    // Add additional items if indicator has description
+    if (indicator.description && indicator.description !== indicator.name) {
+      items.push({
+        field: indicator.description,
+        value: value,
+      });
+    }
+
+    return items;
+  }
+
+  private buildAdditionalLevels(
+    levelIndicators: any[],
+    projectIndicators: any[],
+    rootIndicators: any[]
+  ): any[] {
+    // Filter out indicators that are already children of root indicators
+    const usedIndicatorIds = new Set();
+    rootIndicators.forEach((root) => {
+      if (root.children) {
+        root.children.forEach((child) => usedIndicatorIds.add(child.id));
+      }
+    });
+
+    const independentIndicators = levelIndicators.filter(
+      (ind) => !usedIndicatorIds.has(ind.id)
+    );
+
+    return independentIndicators.map((indicator) => {
+      const projectIndicator = projectIndicators.find(
+        (pi) => pi.indicator_id === indicator.id
+      );
+      const score = projectIndicator?.expected_score
+        ? parseFloat(projectIndicator.expected_score)
+        : null;
+      const level = this.calculateLevel(indicator, levelIndicators);
+
+      return {
+        name: indicator.name,
+        level: level,
+        onprogress: this.determineProgressStatus(score, indicator.is_grey),
+        progressItem: this.buildProgressItems(indicator, projectIndicator),
+      };
+    });
+  }
+
   /**
    * Private helper methods
    */
+
+  private async getProjectTimelineActivities(projectId: string) {
+    return await this.prisma.tbs_project_timeline.findMany({
+      where: { project_id: projectId },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                first_name: true,
+                last_name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { created_at: "asc" },
+    });
+  }
+
+  private getProjectPhases(): string[] {
+    return [
+      Project.Status.Framing,
+      Project.Status.Qualification,
+      Project.Status.ProblemSolving,
+      Project.Status.Testing,
+      Project.Status.Scale,
+      Project.Status.DeploymentPlanning,
+      Project.Status.Deployment,
+    ];
+  }
+
+  private calculateProjectDuration(startDate: Date, endDate: Date): number {
+    return Math.max(
+      1,
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+    );
+  }
+
+  private calculatePhaseEndDate(
+    startDate: Date,
+    duration: number,
+    isLastPhase: boolean,
+    projectEndDate: Date
+  ): Date {
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + duration - 1);
+
+    // Ensure last phase ends on project end date
+    if (isLastPhase) {
+      endDate.setTime(projectEndDate.getTime());
+    }
+
+    return endDate;
+  }
+
+  private getPhaseActivities(
+    activities: any[],
+    phaseStartDate: Date,
+    phaseEndDate: Date
+  ): any[] {
+    return activities.filter((activity) => {
+      const activityDate = new Date(activity.created_at);
+      return activityDate >= phaseStartDate && activityDate <= phaseEndDate;
+    });
+  }
+
+  private createDefaultPhaseActivity(
+    phase: string,
+    phaseStartDate: Date,
+    projectOwner: any
+  ) {
+    return [
+      {
+        event: `${phase} Started`,
+        description: `Project entered ${phase} phase`,
+        created_at: phaseStartDate,
+        creator: projectOwner || null,
+      },
+    ];
+  }
+
+  private formatCreatorName(creator: any): string {
+    if (!creator) return "System";
+
+    if (creator.profile?.first_name) {
+      return `${creator.profile.first_name} ${creator.profile.last_name || ""}`.trim();
+    }
+
+    return creator.email;
+  }
+
+  private mapActivitiesToTimelineFormat(activities: any[]) {
+    return activities.map((activity) => ({
+      event: activity.event,
+      description: activity.description || `${activity.event} activity`,
+      date: activity.created_at.toISOString(),
+      creator: {
+        name: this.formatCreatorName(activity.creator),
+      },
+    }));
+  }
+
+  private buildTimelineByPhases(
+    project: any,
+    timelineActivities: any[],
+    statusColors: Record<string, string>
+  ) {
+    const phases = this.getProjectPhases();
+
+    // Calculate phase date ranges based on project dates and activities
+    const projectStartDate = project.start_date || new Date();
+    const projectEndDate = project.end_date || new Date();
+
+    // Calculate phase duration
+    const totalDays = this.calculateProjectDuration(
+      projectStartDate,
+      projectEndDate
+    );
+    const phaseDuration = Math.ceil(totalDays / phases.length);
+
+    return phases.map((phase, index) => {
+      // Calculate phase dates
+      const phaseStartDate = new Date(projectStartDate);
+      phaseStartDate.setDate(phaseStartDate.getDate() + index * phaseDuration);
+
+      const phaseEndDate = this.calculatePhaseEndDate(
+        phaseStartDate,
+        phaseDuration,
+        index === phases.length - 1,
+        projectEndDate
+      );
+
+      // Get activities for this phase
+      let phaseActivities = this.getPhaseActivities(
+        timelineActivities,
+        phaseStartDate,
+        phaseEndDate
+      );
+
+      // If no specific activities for this phase and it's the first phase, create a default one
+      if (phaseActivities.length === 0 && index === 0) {
+        phaseActivities = this.createDefaultPhaseActivity(
+          phase,
+          phaseStartDate,
+          project.owner
+        );
+      }
+
+      return {
+        name: phase,
+        startDate: phaseStartDate.toISOString().split("T")[0],
+        endDate: phaseEndDate.toISOString().split("T")[0],
+        color: statusColors[phase] || "#CCCCCC",
+        activities: this.mapActivitiesToTimelineFormat(phaseActivities),
+      };
+    });
+  }
 
   private async recalculateProjectScore(tx: any, projectId: string) {
     const indicators = await tx.tbs_project_performance_indicator.findMany({

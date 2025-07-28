@@ -8,6 +8,15 @@ export const Project = {
     DeploymentPlanning: "Deployment Planning",
     Deployment: "Deployment",
   },
+  StatusColors: {
+    Framing: "#FFB366",
+    Qualification: "#6BB6FF",
+    "Problem Solving": "#FFE066",
+    Testing: "#FFCC80",
+    Scale: "#B19CD9",
+    "Deployment Planning": "#A8C8EC",
+    Deployment: "#A8D8A8",
+  },
   PerformanceValuePillar: {
     Operating: "Operating",
     Environmental: "Environmental",
@@ -26,6 +35,7 @@ export const Project = {
 };
 
 export const ProjectStatuses = Object.values(Project.Status);
+export const ProjectStatusColors = Project.StatusColors;
 export const ProjectPerformanceValuePillars = Object.values(
   Project.PerformanceValuePillar
 );
