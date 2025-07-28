@@ -442,40 +442,8 @@ export class ProjectService extends BaseService {
 
       await Promise.all(validationPromises);
 
-      // Build update data
-      const updateData: any = {};
-
-      // Simple field updates
-      if (updateDto.code !== undefined) updateData.code = updateDto.code;
-      if (updateDto.name !== undefined) updateData.name = updateDto.name;
-      if (updateDto.description !== undefined)
-        updateData.description = updateDto.description;
-      if (updateDto.country !== undefined)
-        updateData.country = updateDto.country;
-      if (updateDto.status !== undefined) updateData.status = updateDto.status;
-      if (updateDto.score !== undefined) updateData.score = updateDto.score;
-      if (updateDto.domains !== undefined)
-        updateData.domains = this.validateArrayField(
-          updateDto.domains,
-          "domains"
-        );
-      if (updateDto.pillars !== undefined)
-        updateData.pillars = this.validateArrayField(
-          updateDto.pillars,
-          "pillars"
-        );
-      if (updateDto.start_date !== undefined)
-        updateData.start_date = updateDto.start_date
-          ? new Date(updateDto.start_date)
-          : null;
-      if (updateDto.end_date !== undefined)
-        updateData.end_date = updateDto.end_date
-          ? new Date(updateDto.end_date)
-          : null;
-      if (updateDto.tenant_id !== undefined)
-        updateData.tenant_id = updateDto.tenant_id;
-      if (updateDto.owner_id !== undefined)
-        updateData.owner_id = updateDto.owner_id;
+      // Build update data using helper method
+      const updateData = this.buildProjectUpdateData(updateDto);
 
       // Update project
       await tx.tbm_project.update({
@@ -1273,6 +1241,82 @@ export class ProjectService extends BaseService {
         },
       });
     }
+  }
+
+  private buildProjectUpdateData(updateDto: UpdateProjectDto): any {
+    const updateData: any = {};
+
+    // Define field mappings with their validation/transformation logic
+    const fieldMappings: Array<{
+      source: keyof UpdateProjectDto;
+      target?: string;
+      transform?: (value: any) => any;
+      validate?: (value: any) => any;
+    }> = [
+      // Simple string fields
+      { source: "code" },
+      { source: "name" },
+      { source: "description" },
+      { source: "country" },
+      { source: "status" },
+      { source: "currency" },
+      { source: "tenant_id" },
+      { source: "owner_id" },
+
+      // Numeric fields with validation
+      {
+        source: "score",
+        validate: (value) => this.validateNumericInput(value, "score", 0, 100),
+      },
+      {
+        source: "budget",
+        validate: (value) => this.validateNumericInput(value, "budget", 0),
+      },
+
+      // Array fields with validation
+      {
+        source: "domains",
+        validate: (value) => this.validateArrayField(value, "domains"),
+      },
+      {
+        source: "pillars",
+        validate: (value) => this.validateArrayField(value, "pillars"),
+      },
+
+      // Date fields with transformation
+      {
+        source: "start_date",
+        transform: (value) => (value ? new Date(value) : null),
+      },
+      {
+        source: "end_date",
+        transform: (value) => (value ? new Date(value) : null),
+      },
+    ];
+
+    // Process each field mapping
+    fieldMappings.forEach(({ source, target, transform, validate }) => {
+      const sourceValue = updateDto[source];
+
+      if (sourceValue !== undefined) {
+        const targetField = target || source;
+        let processedValue = sourceValue;
+
+        // Apply validation first if provided
+        if (validate) {
+          processedValue = validate(processedValue);
+        }
+
+        // Apply transformation if provided
+        if (transform) {
+          processedValue = transform(processedValue);
+        }
+
+        updateData[targetField] = processedValue;
+      }
+    });
+
+    return updateData;
   }
 
   private buildTimelineByPhases(
