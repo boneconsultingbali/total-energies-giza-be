@@ -528,37 +528,14 @@ export class ProjectService extends BaseService {
         });
       }
 
-      if (updateDto.files && updateDto.files.length > 0) {
-        await tx.tbm_document.deleteMany({
-          where: { project_id: id },
-        });
-
-        await tx.tbm_document.createMany({
-          data: updateDto.files.map((url) => ({
-            name: url.split("/").pop() || "Untitled Document",
-            content: url,
-            tenant_id: existingProject.tenant_id || null,
-            project_id: id,
-          })),
-        });
-      }
-
-      if (updateDto.images && updateDto.images.length > 0) {
-        await tx.tbs_project_image.deleteMany({
-          where: { project_id: id },
-        });
-
-        await tx.tbs_project_image.createMany({
-          data: updateDto.images.map((url) => ({
-            project_id: id,
-            creator_id: user.id,
-
-            name: url.split("/").pop() || "Untitled Image",
-            image_url: url,
-            description: `Image updated on project update`,
-          })),
-        });
-      }
+      // Handle files and images update
+      await this.handleFileOperations(
+        tx,
+        id,
+        existingProject.tenant_id || null,
+        updateDto
+      );
+      await this.handleImageOperations(tx, id, user.id, updateDto);
 
       // Create timeline entry for update
       await tx.tbs_project_timeline.create({
@@ -1229,6 +1206,73 @@ export class ProjectService extends BaseService {
         name: this.formatCreatorName(activity.creator),
       },
     }));
+  }
+
+  private async handleFileOperations(
+    tx: any,
+    projectId: string,
+    tenantId: string | null,
+    updateDto: any
+  ) {
+    if (updateDto.files && updateDto.files.length > 0) {
+      // Replace all files
+      // await tx.tbm_document.deleteMany({
+      //   where: { project_id: projectId },
+      // });
+
+      await tx.tbm_document.createMany({
+        data: updateDto.files.map((url: string) => ({
+          name: url.split("/").pop() || "Untitled Document",
+          content: url,
+          tenant_id: tenantId,
+          project_id: projectId,
+        })),
+      });
+    }
+
+    // Handle remove operations
+    if (updateDto.remove_files && updateDto.remove_files.length > 0) {
+      await tx.tbm_document.deleteMany({
+        where: {
+          project_id: projectId,
+          content: { in: updateDto.remove_files },
+        },
+      });
+    }
+  }
+
+  private async handleImageOperations(
+    tx: any,
+    projectId: string,
+    userId: string,
+    updateDto: any
+  ) {
+    if (updateDto.images && updateDto.images.length > 0) {
+      // Replace all images
+      // await tx.tbs_project_image.deleteMany({
+      //   where: { project_id: projectId },
+      // });
+
+      await tx.tbs_project_image.createMany({
+        data: updateDto.images.map((url: string) => ({
+          project_id: projectId,
+          creator_id: userId,
+          name: url.split("/").pop() || "Untitled Image",
+          image_url: url,
+          description: `Image updated on project update`,
+        })),
+      });
+    }
+
+    // Handle remove operations
+    if (updateDto.remove_images && updateDto.remove_images.length > 0) {
+      await tx.tbs_project_image.deleteMany({
+        where: {
+          project_id: projectId,
+          image_url: { in: updateDto.remove_images },
+        },
+      });
+    }
   }
 
   private buildTimelineByPhases(

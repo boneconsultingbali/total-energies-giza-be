@@ -42,4 +42,22 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   @IsString()
   @MaxLength(255)
   name?: string;
+
+  // Fields for files and images management
+  @IsOptional()
+  @IsString({ each: true })
+  files?: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  images?: string[];
+
+  // Fields for removing specific files/images by URL
+  @IsOptional()
+  @IsString({ each: true })
+  remove_files?: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  remove_images?: string[];
 }
