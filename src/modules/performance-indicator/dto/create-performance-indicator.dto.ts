@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MaxLength } from "class-validator";
+import { IsString, IsOptional, MaxLength, IsNumber } from "class-validator";
 
 export class CreatePerformanceIndicatorDto {
   @IsString()
@@ -13,4 +13,16 @@ export class CreatePerformanceIndicatorDto {
   @IsOptional()
   @IsString()
   parent_id?: string;
+
+  @IsOptional()
+  @IsString()
+  unit?: string;
+
+  @IsOptional()
+  @IsNumber()
+  min_score?: number;
+
+  @IsOptional()
+  @IsNumber()
+  max_score?: number;
 }
