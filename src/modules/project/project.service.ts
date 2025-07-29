@@ -22,6 +22,7 @@ import {
 } from "./project.includes";
 import { CurrentUser } from "../../types/user.types";
 import { ProjectTimelineResponse } from "./dto/project-timeline-response.dto";
+import { Prisma } from "@prisma/client";
 
 interface ProjectSearchQuery extends PaginationDto {
   // Direct project fields from schema
@@ -203,14 +204,12 @@ export class ProjectService extends BaseService {
 
       await Promise.all(operations);
 
-      await tx.tbs_project_timeline.create({
-        data: {
-          project_id: project.id,
-          creator_id: user.id,
-
-          event: "Project created",
-          description: "Initial project creation",
-        },
+      await this.createProjectTimeline({
+        tx,
+        project_id: project.id,
+        user,
+        event: "Project created",
+        description: "Initial project creation",
       });
 
       // Return the complete project
@@ -506,13 +505,12 @@ export class ProjectService extends BaseService {
       await this.handleImageOperations(tx, id, user.id, updateDto);
 
       // Create timeline entry for update
-      await tx.tbs_project_timeline.create({
-        data: {
-          project_id: id,
-          creator_id: user.id,
-          event: "Project updated",
-          description: `Project updated by ${user.profile?.first_name || user.email}`,
-        },
+      await this.createProjectTimeline({
+        tx,
+        project_id: id,
+        user,
+        event: "Project updated",
+        description: "Project updated",
       });
 
       // Return updated project with all relations
@@ -645,13 +643,12 @@ export class ProjectService extends BaseService {
       }
 
       // Create timeline entry for status change
-      await tx.tbs_project_timeline.create({
-        data: {
-          project_id: projectId,
-          creator_id: user.id,
-          event: "Project status updated",
-          description: `Status changed to ${createStatusDto.status} by ${user.profile?.first_name || user.email}`,
-        },
+      await this.createProjectTimeline({
+        tx,
+        project_id: projectId,
+        user,
+        event: "Project status updated",
+        description: `Status changed to ${createStatusDto.status}`,
       });
 
       return status;
@@ -884,8 +881,20 @@ export class ProjectService extends BaseService {
     const timelineActivities =
       await this.getProjectTimelineActivities(projectId);
 
-    // Group activities by project phases/statuses
-    const timeline = this.buildTimelineByPhases(
+    // If no timeline activities, return phases with empty dates
+    if (timelineActivities.length === 0) {
+      const phases = this.getProjectPhases();
+      return phases.map((phase) => ({
+        name: phase,
+        startDate: "",
+        endDate: "",
+        color: ProjectStatusColors[phase] || "#CCCCCC",
+        activities: [],
+      }));
+    }
+
+    // Build timeline with actual dates and activities
+    const timeline = this.buildTimelineWithActivities(
       project,
       timelineActivities,
       ProjectStatusColors
@@ -1203,6 +1212,89 @@ export class ProjectService extends BaseService {
     });
   }
 
+  private buildTimelineWithActivities(
+    project: any,
+    timelineActivities: any[],
+    statusColors: Record<string, string>
+  ) {
+    const phases = this.getProjectPhases();
+
+    // If we have project dates, calculate phase durations
+    if (project.start_date && project.end_date) {
+      const projectStartDate = new Date(project.start_date);
+      const projectEndDate = new Date(project.end_date);
+      const totalDays = this.calculateProjectDuration(
+        projectStartDate,
+        projectEndDate
+      );
+      const phaseDuration = Math.ceil(totalDays / phases.length);
+
+      return phases.map((phase, index) => {
+        // Calculate phase dates
+        const phaseStartDate = new Date(projectStartDate);
+        phaseStartDate.setDate(
+          phaseStartDate.getDate() + index * phaseDuration
+        );
+
+        const phaseEndDate = this.calculatePhaseEndDate(
+          phaseStartDate,
+          phaseDuration,
+          index === phases.length - 1,
+          projectEndDate
+        );
+
+        // Get activities for this phase
+        const phaseActivities = this.getPhaseActivities(
+          timelineActivities,
+          phaseStartDate,
+          phaseEndDate
+        );
+
+        return {
+          name: phase,
+          startDate: phaseStartDate.toISOString().split("T")[0],
+          endDate: phaseEndDate.toISOString().split("T")[0],
+          color: statusColors[phase] || "#CCCCCC",
+          activities: this.mapActivitiesToTimelineFormat(phaseActivities),
+        };
+      });
+    }
+
+    // If no project dates, group activities by their actual occurrence
+    return phases.map((phase, index) => {
+      let phaseActivities = [];
+
+      // Put all activities in Framing phase if we don't have project dates to calculate phases
+      if (index === 0 && timelineActivities.length > 0) {
+        phaseActivities = timelineActivities;
+      }
+
+      // Set dates based on actual activity dates if available
+      let startDate = "";
+      let endDate = "";
+
+      if (phaseActivities.length > 0) {
+        const activityDates = phaseActivities.map((a) =>
+          new Date(a.created_at).getTime()
+        );
+        startDate = new Date(Math.min(...activityDates))
+          .toISOString()
+          .split("T")[0];
+        endDate = new Date(Math.max(...activityDates))
+          .toISOString()
+          .split("T")[0];
+      }
+
+      return {
+        name: phase,
+        startDate,
+        endDate,
+        color: statusColors[phase] || "#CCCCCC",
+        activities: this.mapActivitiesToTimelineFormat(phaseActivities),
+      };
+    });
+  }
+
   private async recalculateProjectScore(tx: any, projectId: string) {
     const indicators = await tx.tbs_project_performance_indicator.findMany({
       where: { project_id: projectId },
@@ -1225,5 +1317,50 @@ export class ProjectService extends BaseService {
         });
       }
     }
+  }
+
+  private async createProjectTimeline({
+    tx,
+    project_id,
+    user,
+    event,
+    description,
+  }: {
+    tx: Prisma.TransactionClient;
+    project_id: string;
+    user: CurrentUser;
+    event: string;
+    description: string;
+  }) {
+    this.logOperation("Creating project timeline entry", project_id, user.id);
+
+    // Find the last timeline entry to update its end_date
+    const lastEntries = await tx.tbs_project_timeline.findMany({
+      where: { project_id },
+      orderBy: { created_at: "desc" },
+      take: 1,
+    });
+
+    // Update the last entry's end_date if it exists and doesn't have an end_date yet
+    if (lastEntries.length > 0) {
+      const lastEntry = lastEntries[0];
+      if (lastEntry.created_at && !lastEntry.end_date) {
+        await tx.tbs_project_timeline.update({
+          where: { id: lastEntry.id },
+          data: { end_date: new Date() },
+        });
+      }
+    }
+
+    // Create the new timeline entry
+    return await tx.tbs_project_timeline.create({
+      data: {
+        project_id: project_id,
+        creator_id: user.id,
+        start_date: new Date(),
+        event,
+        description: `${description} by ${user.profile?.first_name || user.email}`,
+      },
+    });
   }
 }
