@@ -223,6 +223,9 @@ export const PROJECT_DETAIL_INCLUDE: Prisma.tbm_projectInclude = {
           name: true,
           description: true,
           pillar: true,
+          unit: true,
+          min_score: true,
+          max_score: true,
           parent: {
             select: {
               id: true,
