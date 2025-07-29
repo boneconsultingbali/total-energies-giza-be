@@ -294,11 +294,13 @@ model tbs_project_status {
 }
 
 model tbs_project_timeline {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   event       String
   description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  start_date  DateTime?
+  end_date    DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 
   project_id String
   project    tbm_project @relation(fields: [project_id], references: [id], onDelete: Cascade)
