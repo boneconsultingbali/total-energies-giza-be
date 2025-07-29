@@ -940,41 +940,150 @@ export class ProjectService extends BaseService {
     ];
   }
 
-  private calculateProjectDuration(startDate: Date, endDate: Date): number {
-    return Math.max(
-      1,
-      Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-      )
-    );
-  }
+  private getActivitiesForPhase(activities: any[], targetPhase: string): any[] {
+    const phaseActivities = [];
 
-  private calculatePhaseEndDate(
-    startDate: Date,
-    duration: number,
-    isLastPhase: boolean,
-    projectEndDate: Date
-  ): Date {
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + duration - 1);
+    for (const activity of activities) {
+      // Check if the activity description or event mentions the target phase
+      const activityText =
+        `${activity.event} ${activity.description || ""}`.toLowerCase();
+      const targetPhaseText = targetPhase.toLowerCase();
 
-    // Ensure last phase ends on project end date
-    if (isLastPhase) {
-      endDate.setTime(projectEndDate.getTime());
+      // Check for exact phase name matches in the activity
+      if (activityText.includes(targetPhaseText)) {
+        phaseActivities.push(activity);
+      }
+      // Check for status change activities that mention the target phase
+      else if (
+        activity.event.toLowerCase().includes("status") &&
+        activityText.includes(`to ${targetPhaseText}`)
+      ) {
+        phaseActivities.push(activity);
+      }
+      // Check for alternative phase names or keywords
+      else if (this.isActivityForPhase(activity, targetPhase)) {
+        phaseActivities.push(activity);
+      }
+      // Default behavior: put general activities in Framing phase
+      else if (
+        targetPhase === Project.Status.Framing &&
+        !this.hasSpecificPhaseActivity(activity)
+      ) {
+        phaseActivities.push(activity);
+      }
     }
 
-    return endDate;
+    return phaseActivities;
   }
 
-  private getPhaseActivities(
+  private groupActivitiesByPhaseChronologically(
     activities: any[],
-    phaseStartDate: Date,
-    phaseEndDate: Date
-  ): any[] {
-    return activities.filter((activity) => {
-      const activityDate = new Date(activity.created_at);
-      return activityDate >= phaseStartDate && activityDate <= phaseEndDate;
-    });
+    phases: string[]
+  ): Array<{ phase: string; activities: any[] }> {
+    const result = [];
+    let currentPhaseGroup = null;
+
+    // Sort activities by created_at to ensure chronological order
+    const sortedActivities = [...activities].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    for (const activity of sortedActivities) {
+      // Determine which phase this activity belongs to
+      const activityPhase = this.determineActivityPhase(activity, phases);
+
+      // If this is a different phase from the current group, start a new group
+      if (!currentPhaseGroup || currentPhaseGroup.phase !== activityPhase) {
+        currentPhaseGroup = {
+          phase: activityPhase,
+          activities: [],
+        };
+        result.push(currentPhaseGroup);
+      }
+
+      // Add activity to current phase group
+      currentPhaseGroup.activities.push(activity);
+    }
+
+    return result;
+  }
+
+  private determineActivityPhase(activity: any, phases: string[]): string {
+    const activityText =
+      `${activity.event} ${activity.description || ""}`.toLowerCase();
+
+    // Check for status change activities first (highest priority)
+    if (activity.event.toLowerCase().includes("status")) {
+      for (const phase of phases) {
+        if (activityText.includes(`to ${phase.toLowerCase()}`)) {
+          return phase;
+        }
+      }
+    }
+
+    // Check for exact phase name matches
+    for (const phase of phases) {
+      if (activityText.includes(phase.toLowerCase())) {
+        return phase;
+      }
+    }
+
+    // Check for phase-specific keywords
+    for (const phase of phases) {
+      if (this.isActivityForPhase(activity, phase)) {
+        return phase;
+      }
+    }
+
+    // Default to Framing phase for general activities
+    return Project.Status.Framing;
+  }
+
+  private isActivityForPhase(activity: any, targetPhase: string): boolean {
+    const activityText =
+      `${activity.event} ${activity.description || ""}`.toLowerCase();
+
+    // Define phase-specific keywords
+    const phaseKeywords: Record<string, string[]> = {
+      [Project.Status.Framing]: ["created", "initiated", "started", "framing"],
+      [Project.Status.Qualification]: ["qualification", "qualified", "qualify"],
+      [Project.Status.ProblemSolving]: [
+        "problem solving",
+        "problem-solving",
+        "solving",
+      ],
+      [Project.Status.Testing]: ["testing", "test", "tested"],
+      [Project.Status.Scale]: ["scale", "scaling", "scaled"],
+      [Project.Status.DeploymentPlanning]: [
+        "deployment planning",
+        "planning",
+        "plan",
+      ],
+      [Project.Status.Deployment]: ["deployment", "deployed", "deploy"],
+    };
+
+    const keywords = phaseKeywords[targetPhase] || [];
+    return keywords.some((keyword) => activityText.includes(keyword));
+  }
+
+  private hasSpecificPhaseActivity(activity: any): boolean {
+    const phases = this.getProjectPhases();
+    const activityText =
+      `${activity.event} ${activity.description || ""}`.toLowerCase();
+
+    // Check if this activity specifically mentions any phase (except general project activities)
+    for (const phase of phases) {
+      if (
+        phase !== Project.Status.Framing &&
+        (activityText.includes(phase.toLowerCase()) ||
+          this.isActivityForPhase(activity, phase))
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private createDefaultPhaseActivity(
@@ -986,6 +1095,7 @@ export class ProjectService extends BaseService {
       {
         event: `${phase} Started`,
         description: `Project entered ${phase} phase`,
+        start_date: phaseStartDate,
         created_at: phaseStartDate,
         creator: projectOwner || null,
       },
@@ -1006,7 +1116,7 @@ export class ProjectService extends BaseService {
     return activities.map((activity) => ({
       event: activity.event,
       description: activity.description || `${activity.event} activity`,
-      date: activity.created_at.toISOString(),
+      date: (activity.start_date || activity.created_at).toISOString(),
       creator: {
         name: this.formatCreatorName(activity.creator),
       },
@@ -1156,143 +1266,130 @@ export class ProjectService extends BaseService {
     return updateData;
   }
 
-  private buildTimelineByPhases(
-    project: any,
-    timelineActivities: any[],
-    statusColors: Record<string, string>
-  ) {
-    const phases = this.getProjectPhases();
-
-    // Calculate phase date ranges based on project dates and activities
-    const projectStartDate = project.start_date || new Date();
-    const projectEndDate = project.end_date || new Date();
-
-    // Calculate phase duration
-    const totalDays = this.calculateProjectDuration(
-      projectStartDate,
-      projectEndDate
-    );
-    const phaseDuration = Math.ceil(totalDays / phases.length);
-
-    return phases.map((phase, index) => {
-      // Calculate phase dates
-      const phaseStartDate = new Date(projectStartDate);
-      phaseStartDate.setDate(phaseStartDate.getDate() + index * phaseDuration);
-
-      const phaseEndDate = this.calculatePhaseEndDate(
-        phaseStartDate,
-        phaseDuration,
-        index === phases.length - 1,
-        projectEndDate
-      );
-
-      // Get activities for this phase
-      let phaseActivities = this.getPhaseActivities(
-        timelineActivities,
-        phaseStartDate,
-        phaseEndDate
-      );
-
-      // If no specific activities for this phase and it's the first phase, create a default one
-      if (phaseActivities.length === 0 && index === 0) {
-        phaseActivities = this.createDefaultPhaseActivity(
-          phase,
-          phaseStartDate,
-          project.owner
-        );
-      }
-
-      return {
-        name: phase,
-        startDate: phaseStartDate.toISOString().split("T")[0],
-        endDate: phaseEndDate.toISOString().split("T")[0],
-        color: statusColors[phase] || "#CCCCCC",
-        activities: this.mapActivitiesToTimelineFormat(phaseActivities),
-      };
-    });
-  }
-
   private buildTimelineWithActivities(
     project: any,
     timelineActivities: any[],
     statusColors: Record<string, string>
   ) {
+    // Build timeline chronologically, allowing phases to repeat
+    const timeline = [];
     const phases = this.getProjectPhases();
 
-    // If we have project dates, calculate phase durations
-    if (project.start_date && project.end_date) {
-      const projectStartDate = new Date(project.start_date);
-      const projectEndDate = new Date(project.end_date);
-      const totalDays = this.calculateProjectDuration(
-        projectStartDate,
-        projectEndDate
-      );
-      const phaseDuration = Math.ceil(totalDays / phases.length);
+    // Group activities by phases in chronological order
+    const phaseGroups = this.groupActivitiesByPhaseChronologically(
+      timelineActivities,
+      phases
+    );
 
-      return phases.map((phase, index) => {
-        // Calculate phase dates
-        const phaseStartDate = new Date(projectStartDate);
-        phaseStartDate.setDate(
-          phaseStartDate.getDate() + index * phaseDuration
-        );
+    // Create timeline entries for each phase group
+    for (const phaseGroup of phaseGroups) {
+      const { phase, activities } = phaseGroup;
 
-        const phaseEndDate = this.calculatePhaseEndDate(
-          phaseStartDate,
-          phaseDuration,
-          index === phases.length - 1,
-          projectEndDate
-        );
-
-        // Get activities for this phase
-        const phaseActivities = this.getPhaseActivities(
-          timelineActivities,
-          phaseStartDate,
-          phaseEndDate
-        );
-
-        return {
-          name: phase,
-          startDate: phaseStartDate.toISOString().split("T")[0],
-          endDate: phaseEndDate.toISOString().split("T")[0],
-          color: statusColors[phase] || "#CCCCCC",
-          activities: this.mapActivitiesToTimelineFormat(phaseActivities),
-        };
-      });
-    }
-
-    // If no project dates, group activities by their actual occurrence
-    return phases.map((phase, index) => {
-      let phaseActivities = [];
-
-      // Put all activities in Framing phase if we don't have project dates to calculate phases
-      if (index === 0 && timelineActivities.length > 0) {
-        phaseActivities = timelineActivities;
-      }
-
-      // Set dates based on actual activity dates if available
+      // Set dates based on actual activity dates from database if available
       let startDate = "";
       let endDate = "";
 
-      if (phaseActivities.length > 0) {
-        const activityDates = phaseActivities.map((a) =>
-          new Date(a.created_at).getTime()
-        );
-        startDate = new Date(Math.min(...activityDates))
-          .toISOString()
-          .split("T")[0];
-        endDate = new Date(Math.max(...activityDates))
-          .toISOString()
-          .split("T")[0];
+      if (activities.length > 0) {
+        // Use start_date and end_date from database, fall back to created_at if not available
+        const activityDates = activities
+          .map((a) => {
+            const startTime = a.start_date
+              ? new Date(a.start_date).getTime()
+              : null;
+            const endTime = a.end_date ? new Date(a.end_date).getTime() : null;
+            const createdTime = new Date(a.created_at).getTime();
+
+            return {
+              start: startTime || createdTime,
+              end: endTime || createdTime,
+            };
+          })
+          .filter((dates) => dates.start && dates.end);
+
+        if (activityDates.length > 0) {
+          const minStartDate = Math.min(...activityDates.map((d) => d.start));
+          const maxEndDate = Math.max(...activityDates.map((d) => d.end));
+
+          startDate = new Date(minStartDate).toISOString().split("T")[0];
+          endDate = new Date(maxEndDate).toISOString().split("T")[0];
+        }
       }
 
-      return {
+      timeline.push({
         name: phase,
         startDate,
         endDate,
         color: statusColors[phase] || "#CCCCCC",
-        activities: this.mapActivitiesToTimelineFormat(phaseActivities),
+        activities: this.mapActivitiesToTimelineFormat(activities),
+      });
+    }
+
+    // Merge timeline entries with same dates and phase
+    const mergedTimeline = this.mergeTimelineEntriesWithSameDates(timeline);
+
+    // Add empty phases that haven't been used yet
+    for (const phase of phases) {
+      const hasPhaseInTimeline = mergedTimeline.some((t) => t.name === phase);
+      if (!hasPhaseInTimeline) {
+        mergedTimeline.push({
+          name: phase,
+          startDate: "",
+          endDate: "",
+          color: statusColors[phase] || "#CCCCCC",
+          activities: [],
+        });
+      }
+    }
+
+    return mergedTimeline;
+  }
+
+  private mergeTimelineEntriesWithSameDates(timeline: any[]): any[] {
+    const merged = [];
+    const processedEntries = new Set();
+
+    for (let i = 0; i < timeline.length; i++) {
+      if (processedEntries.has(i)) continue;
+
+      const currentEntry = timeline[i];
+      const mergedEntry = {
+        name: currentEntry.name,
+        startDate: currentEntry.startDate,
+        endDate: currentEntry.endDate,
+        color: currentEntry.color,
+        activities: [...currentEntry.activities],
       };
-    });
+
+      // Look for other entries with the same phase, startDate, and endDate
+      for (let j = i + 1; j < timeline.length; j++) {
+        if (processedEntries.has(j)) continue;
+
+        const otherEntry = timeline[j];
+
+        // Check if same phase and same dates (including both being empty)
+        if (
+          otherEntry.name === currentEntry.name &&
+          otherEntry.startDate === currentEntry.startDate &&
+          otherEntry.endDate === currentEntry.endDate &&
+          currentEntry.startDate !== "" && // Only merge non-empty entries
+          currentEntry.endDate !== ""
+        ) {
+          // Merge activities, preserving chronological order
+          mergedEntry.activities.push(...otherEntry.activities);
+          processedEntries.add(j);
+        }
+      }
+
+      // Sort activities chronologically within the merged entry
+      mergedEntry.activities.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      merged.push(mergedEntry);
+      processedEntries.add(i);
+    }
+
+    return merged;
   }
 
   private async recalculateProjectScore(tx: any, projectId: string) {
