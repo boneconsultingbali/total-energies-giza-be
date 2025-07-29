@@ -199,6 +199,7 @@ model tbm_performance_indicator {
   name        String  @unique
   description String?
 
+  unit      String? // Unit of measurement for the indicator
   score     Decimal? @db.Decimal(5, 2) // Score for the indicator
   min_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator
   max_score Decimal? @db.Decimal(5, 2) // Minimum score for the indicator

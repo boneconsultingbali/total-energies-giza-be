@@ -795,52 +795,80 @@ export class ProjectService extends BaseService {
     // Verify access to project first
     await this.findOne(projectId, user);
 
-    // Get project performance indicators with their scores
-    const projectIndicators =
-      await this.prisma.tbs_project_performance_indicator.findMany({
-        where: { project_id: projectId },
+    // Get all parent performance indicators (has_parent = false)
+    const parentIndicators =
+      await this.prisma.tbm_performance_indicator.findMany({
+        where: { parent_id: null },
         include: {
-          indicator: {
-            include: {
-              parent: true,
+          parent: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          children: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              unit: true,
+              min_score: true,
+              max_score: true,
+              is_grey: true,
+            },
+          },
+          _count: {
+            select: {
               children: true,
+              projects: true,
             },
           },
         },
       });
 
-    // Get all performance indicators to understand the hierarchy
-    const allIndicators = await this.prisma.tbm_performance_indicator.findMany({
-      include: {
-        parent: true,
-        children: true,
-      },
+    // Get project performance indicators for this project
+    const projectIndicators =
+      await this.prisma.tbs_project_performance_indicator.findMany({
+        where: { project_id: projectId },
+        select: {
+          indicator_id: true,
+          expected_trend: true,
+          expected_score: true,
+        },
+      });
+
+    // Create a map for quick lookup of project indicators
+    const projectIndicatorMap = new Map();
+    projectIndicators.forEach((pi) => {
+      projectIndicatorMap.set(pi.indicator_id, {
+        expected_trend: pi.expected_trend,
+        expected_score: pi.expected_score,
+      });
     });
 
-    // Group indicators by pillar
-    const groupedByPillar = {
-      Operating: this.buildPyramidStructure(
-        projectIndicators,
-        allIndicators,
-        "Operating"
-      ),
-      Environmental: this.buildPyramidStructure(
-        projectIndicators,
-        allIndicators,
-        "Environmental"
-      ),
-      Safety: this.buildPyramidStructure(
-        projectIndicators,
-        allIndicators,
-        "Safety"
-      ),
-    };
+    // Add expected_trend and expected_score to parent indicators and their children
+    const result = parentIndicators.map((indicator) => {
+      const projectData = projectIndicatorMap.get(indicator.id);
 
-    return {
-      operatingPerformanceData: groupedByPillar.Operating,
-      environmentalPerformanceData: groupedByPillar.Environmental,
-      safetyPerformanceData: groupedByPillar.Safety,
-    };
+      // Add expected_trend and expected_score to children
+      const childrenWithProjectData = indicator.children.map((child) => {
+        const childProjectData = projectIndicatorMap.get(child.id);
+        return {
+          ...child,
+          expected_trend: childProjectData?.expected_trend || null,
+          expected_score: childProjectData?.expected_score || null,
+        };
+      });
+
+      return {
+        ...indicator,
+        expected_trend: projectData?.expected_trend || null,
+        expected_score: projectData?.expected_score || null,
+        children: childrenWithProjectData,
+      };
+    });
+
+    return result;
   }
 
   async getProjectTimelineById(
@@ -864,206 +892,6 @@ export class ProjectService extends BaseService {
     );
 
     return timeline;
-  }
-
-  private buildPyramidStructure(
-    projectIndicators: any[],
-    allIndicators: any[],
-    pillar: string
-  ) {
-    // Filter indicators by pillar
-    const pillarIndicators = allIndicators.filter(
-      (ind) => ind.pillar === pillar
-    );
-
-    // Get root level indicators (those without parents)
-    const rootIndicators = pillarIndicators.filter((ind) => !ind.parent_id);
-
-    // Build the pyramid structure
-    const pyramidData = rootIndicators.map((rootIndicator) => {
-      const level = this.calculateLevel(rootIndicator, pillarIndicators);
-      const hasChildren =
-        rootIndicator.children && rootIndicator.children.length > 0;
-
-      // Find project expected_score for this indicator
-      const projectIndicator = projectIndicators.find(
-        (pi) => pi.indicator_id === rootIndicator.id
-      );
-      const score = projectIndicator?.expected_score
-        ? parseFloat(projectIndicator.expected_score)
-        : null;
-
-      const baseStructure: any = {
-        name: rootIndicator.name,
-        level: level,
-        onprogress: this.determineProgressStatus(score, rootIndicator.is_grey),
-        progressItem: this.buildProgressItems(rootIndicator, projectIndicator),
-      };
-
-      // If has children, build subchild structure
-      if (hasChildren) {
-        baseStructure.subchild = rootIndicator.children.map(
-          (child, childIndex) => {
-            const childProjectIndicator = projectIndicators.find(
-              (pi) => pi.indicator_id === child.id
-            );
-            const childScore = childProjectIndicator?.expected_score
-              ? parseFloat(childProjectIndicator.expected_score)
-              : null;
-
-            return {
-              subLevel: childIndex + 1,
-              name: child.name,
-              onprogress: this.determineProgressStatus(
-                childScore,
-                child.is_grey
-              ),
-              progressItem: this.buildProgressItems(
-                child,
-                childProjectIndicator
-              ),
-            };
-          }
-        );
-      }
-
-      return baseStructure;
-    });
-
-    // Add additional levels based on hierarchy depth
-    const allLevelIndicators = pillarIndicators.filter((ind) => ind.parent_id);
-    const additionalLevels = this.buildAdditionalLevels(
-      allLevelIndicators,
-      projectIndicators,
-      rootIndicators
-    );
-
-    return [...pyramidData, ...additionalLevels];
-  }
-
-  private calculateLevel(indicator: any, allIndicators: any[]): number {
-    // Calculate level based on hierarchy depth
-    let level = 1;
-    const descendants = this.getDescendants(indicator, allIndicators);
-
-    if (descendants.length === 0) {
-      // Leaf nodes get higher levels
-      level = 4;
-    } else if (descendants.length <= 2) {
-      level = 3;
-    } else if (descendants.length <= 5) {
-      level = 2;
-    } else {
-      level = 1;
-    }
-
-    return level;
-  }
-
-  private getDescendants(indicator: any, allIndicators: any[]): any[] {
-    const children = allIndicators.filter(
-      (ind) => ind.parent_id === indicator.id
-    );
-    let descendants = [...children];
-
-    children.forEach((child) => {
-      descendants = [
-        ...descendants,
-        ...this.getDescendants(child, allIndicators),
-      ];
-    });
-
-    return descendants;
-  }
-
-  private determineProgressStatus(
-    score: number | null,
-    isGrey: boolean
-  ): boolean {
-    if (isGrey) return false;
-    if (score === null) return true;
-    return score < 100;
-  }
-
-  private buildProgressItems(
-    indicator: any,
-    projectIndicator: any
-  ): Array<{ field: string; value: string }> {
-    const items = [];
-
-    // Use the indicator name as the main field
-    let value = "0%";
-
-    if (projectIndicator?.expected_score) {
-      const scoreValue = Math.round(
-        parseFloat(projectIndicator.expected_score)
-      );
-
-      // Add + or - based on expected_trend
-      let trendSymbol = "";
-      if (projectIndicator.expected_trend === "increase") {
-        trendSymbol = "+";
-      } else if (projectIndicator.expected_trend === "decrease") {
-        trendSymbol = "-";
-      }
-
-      // Use absolute value and apply trend symbol
-      const absoluteScore = Math.abs(scoreValue);
-      value = `${trendSymbol}${absoluteScore}%`;
-    } else {
-      // Set to 0% when expected_score is not found in tbs_project_performance_indicator
-      value = "0%";
-    }
-
-    items.push({
-      field: indicator.name,
-      value: value,
-    });
-
-    // Add additional items if indicator has description
-    if (indicator.description && indicator.description !== indicator.name) {
-      items.push({
-        field: indicator.description,
-        value: value,
-      });
-    }
-
-    return items;
-  }
-
-  private buildAdditionalLevels(
-    levelIndicators: any[],
-    projectIndicators: any[],
-    rootIndicators: any[]
-  ): any[] {
-    // Filter out indicators that are already children of root indicators
-    const usedIndicatorIds = new Set();
-    rootIndicators.forEach((root) => {
-      if (root.children) {
-        root.children.forEach((child) => usedIndicatorIds.add(child.id));
-      }
-    });
-
-    const independentIndicators = levelIndicators.filter(
-      (ind) => !usedIndicatorIds.has(ind.id)
-    );
-
-    return independentIndicators.map((indicator) => {
-      const projectIndicator = projectIndicators.find(
-        (pi) => pi.indicator_id === indicator.id
-      );
-      const score = projectIndicator?.expected_score
-        ? parseFloat(projectIndicator.expected_score)
-        : null;
-      const level = this.calculateLevel(indicator, levelIndicators);
-
-      return {
-        name: indicator.name,
-        level: level,
-        onprogress: this.determineProgressStatus(score, indicator.is_grey),
-        progressItem: this.buildProgressItems(indicator, projectIndicator),
-      };
-    });
   }
 
   /**

@@ -1,17 +1,6 @@
-import { IsString, IsOptional, MaxLength } from "class-validator";
+import { PartialType } from "@nestjs/mapped-types";
+import { CreatePerformanceIndicatorDto } from "./create-performance-indicator.dto";
 
-export class UpdatePerformanceIndicatorDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  description?: string;
-
-  @IsOptional()
-  @IsString()
-  parent_id?: string;
-}
+export class UpdatePerformanceIndicatorDto extends PartialType(
+  CreatePerformanceIndicatorDto
+) {}
