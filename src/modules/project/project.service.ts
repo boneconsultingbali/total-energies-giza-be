@@ -940,42 +940,6 @@ export class ProjectService extends BaseService {
     ];
   }
 
-  private getActivitiesForPhase(activities: any[], targetPhase: string): any[] {
-    const phaseActivities = [];
-
-    for (const activity of activities) {
-      // Check if the activity description or event mentions the target phase
-      const activityText =
-        `${activity.event} ${activity.description || ""}`.toLowerCase();
-      const targetPhaseText = targetPhase.toLowerCase();
-
-      // Check for exact phase name matches in the activity
-      if (activityText.includes(targetPhaseText)) {
-        phaseActivities.push(activity);
-      }
-      // Check for status change activities that mention the target phase
-      else if (
-        activity.event.toLowerCase().includes("status") &&
-        activityText.includes(`to ${targetPhaseText}`)
-      ) {
-        phaseActivities.push(activity);
-      }
-      // Check for alternative phase names or keywords
-      else if (this.isActivityForPhase(activity, targetPhase)) {
-        phaseActivities.push(activity);
-      }
-      // Default behavior: put general activities in Framing phase
-      else if (
-        targetPhase === Project.Status.Framing &&
-        !this.hasSpecificPhaseActivity(activity)
-      ) {
-        phaseActivities.push(activity);
-      }
-    }
-
-    return phaseActivities;
-  }
-
   private groupActivitiesByPhaseChronologically(
     activities: any[],
     phases: string[]
@@ -1067,41 +1031,6 @@ export class ProjectService extends BaseService {
     return keywords.some((keyword) => activityText.includes(keyword));
   }
 
-  private hasSpecificPhaseActivity(activity: any): boolean {
-    const phases = this.getProjectPhases();
-    const activityText =
-      `${activity.event} ${activity.description || ""}`.toLowerCase();
-
-    // Check if this activity specifically mentions any phase (except general project activities)
-    for (const phase of phases) {
-      if (
-        phase !== Project.Status.Framing &&
-        (activityText.includes(phase.toLowerCase()) ||
-          this.isActivityForPhase(activity, phase))
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private createDefaultPhaseActivity(
-    phase: string,
-    phaseStartDate: Date,
-    projectOwner: any
-  ) {
-    return [
-      {
-        event: `${phase} Started`,
-        description: `Project entered ${phase} phase`,
-        start_date: phaseStartDate,
-        created_at: phaseStartDate,
-        creator: projectOwner || null,
-      },
-    ];
-  }
-
   private formatCreatorName(creator: any): string {
     if (!creator) return "System";
 
@@ -1116,7 +1045,8 @@ export class ProjectService extends BaseService {
     return activities.map((activity) => ({
       event: activity.event,
       description: activity.description || `${activity.event} activity`,
-      date: (activity.start_date || activity.created_at).toISOString(),
+      start_date: (activity.start_date || activity.created_at).toISOString(),
+      end_date: activity.end_date?.toISOString() || new Date().toISOString(),
       creator: {
         name: this.formatCreatorName(activity.creator),
       },
@@ -1301,7 +1231,7 @@ export class ProjectService extends BaseService {
 
             return {
               start: startTime || createdTime,
-              end: endTime || createdTime,
+              end: endTime || new Date().getTime(),
             };
           })
           .filter((dates) => dates.start && dates.end);
@@ -1310,8 +1240,19 @@ export class ProjectService extends BaseService {
           const minStartDate = Math.min(...activityDates.map((d) => d.start));
           const maxEndDate = Math.max(...activityDates.map((d) => d.end));
 
-          startDate = new Date(minStartDate).toISOString().split("T")[0];
-          endDate = new Date(maxEndDate).toISOString().split("T")[0];
+          const calculatedStartDate = new Date(minStartDate);
+          const calculatedEndDate = new Date(maxEndDate);
+
+          // If start and end dates are the same day, subtract one day from start date
+          const startDateStr = calculatedStartDate.toISOString().split("T")[0];
+          const endDateStr = calculatedEndDate.toISOString().split("T")[0];
+
+          if (startDateStr === endDateStr) {
+            calculatedStartDate.setDate(calculatedStartDate.getDate() - 1);
+          }
+
+          startDate = calculatedStartDate.toISOString().split("T")[0];
+          endDate = calculatedEndDate.toISOString().split("T")[0];
         }
       }
 
@@ -1341,7 +1282,14 @@ export class ProjectService extends BaseService {
       }
     }
 
-    return mergedTimeline;
+    // Sort timeline according to the predefined phase order
+    const sortedTimeline = mergedTimeline.sort((a, b) => {
+      const phaseOrderA = phases.indexOf(a.name);
+      const phaseOrderB = phases.indexOf(b.name);
+      return phaseOrderA - phaseOrderB;
+    });
+
+    return sortedTimeline;
   }
 
   private mergeTimelineEntriesWithSameDates(timeline: any[]): any[] {
@@ -1382,7 +1330,8 @@ export class ProjectService extends BaseService {
 
       // Sort activities chronologically within the merged entry
       mergedEntry.activities.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) =>
+          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
       );
 
       merged.push(mergedEntry);
