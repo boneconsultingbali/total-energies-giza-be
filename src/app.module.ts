@@ -19,6 +19,7 @@ import { TenantModule } from "./modules/tenant/tenant.module";
 import { ThirdPartyModule } from "./modules/third-party/third-party.module";
 import { AzureBlobStorageModule } from "./storage/azure-blob-storage/azure-blob-storage.module";
 import { RoleModule } from "./modules/role/role.module";
+import { DashboardModule } from "./modules/dashboard/dashboard.module";
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { RoleModule } from "./modules/role/role.module";
     TenantModule,
     ThirdPartyModule,
     RoleModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

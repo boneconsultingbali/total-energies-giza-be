@@ -1045,6 +1045,7 @@ export class ProjectService extends BaseService {
     return activities.map((activity) => ({
       event: activity.event,
       description: activity.description || `${activity.event} activity`,
+      date: (activity.start_date || activity.created_at).toISOString(),
       start_date: (activity.start_date || activity.created_at).toISOString(),
       end_date: activity.end_date?.toISOString() || new Date().toISOString(),
       creator: {
