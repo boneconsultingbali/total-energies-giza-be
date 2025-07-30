@@ -72,10 +72,18 @@ export class DashboardService extends BaseService {
 
     // Build dashboard response
     return {
-      stats: this.buildStatsData(totalProjects, activeProjects, completedProjects, totalBudget._sum.budget?.toNumber()),
+      stats: this.buildStatsData(
+        totalProjects,
+        activeProjects,
+        completedProjects,
+        totalBudget._sum.budget?.toNumber()
+      ),
       projectStages: this.buildProjectStagesData(projectsByStatus),
       mapCountries: this.buildMapCountriesData(projectsByCountry),
-      valuePillars: this.buildValuePillarsData(projectsWithPillars, totalProjects),
+      valuePillars: this.buildValuePillarsData(
+        projectsWithPillars,
+        totalProjects
+      ),
     };
   }
 
@@ -87,7 +95,7 @@ export class DashboardService extends BaseService {
   ): DashboardStatsDto[] {
     const formatBudget = (budget: number | null): string => {
       if (!budget) return "$0";
-      
+
       if (budget >= 1000000) {
         return `$${(budget / 1000000).toFixed(1)}M`;
       } else if (budget >= 1000) {
@@ -167,24 +175,31 @@ export class DashboardService extends BaseService {
   }
 
   private buildMapCountriesData(projectsByCountry: any[]): CountryProjectDto[] {
-    // Map countries with flag URLs
+    // Map countries with flag URLs and use cca2 country codes
     const countryMap = new Map();
     countries.forEach((country) => {
       countryMap.set(country.name.common, {
-        code: country.name.common.substring(0, 2).toUpperCase(),
+        code: country.cca2,
         flag: country.flags.svg,
       });
     });
 
     // Color palette for countries
-    const colors = ["#6352ce", "#0cb9c5", "#1e88e5", "#8e24aa", "#43a047", "#ff7043"];
+    const colors = [
+      "#6352ce",
+      "#0cb9c5",
+      "#1e88e5",
+      "#8e24aa",
+      "#43a047",
+      "#ff7043",
+    ];
 
     return projectsByCountry
       .sort((a, b) => b._count - a._count) // Sort by project count descending
       .slice(0, 10) // Take top 10 countries
       .map((item, index) => {
         const countryInfo = countryMap.get(item.country) || {
-          code: item.country?.substring(0, 2).toUpperCase() || "XX",
+          code: "XX",
           flag: "https://via.placeholder.com/24x16/cccccc/ffffff?text=--",
         };
 
@@ -198,7 +213,10 @@ export class DashboardService extends BaseService {
       });
   }
 
-  private buildValuePillarsData(projectsWithPillars: any[], totalProjects: number): ValuePillarDto[] {
+  private buildValuePillarsData(
+    projectsWithPillars: any[],
+    totalProjects: number
+  ): ValuePillarDto[] {
     // Count projects by pillars (pillars is an array field)
     const pillarCounts = new Map();
 
@@ -212,14 +230,27 @@ export class DashboardService extends BaseService {
 
     // Default pillars with colors
     const defaultPillars = [
-      { name: "Environmental Performance", color: "#90EE90" },
-      { name: "Operating Performance", color: "#87CEEB" },
-      { name: "Safety Performance", color: "#F0A0A0" },
+      {
+        name: "Environmental Performance",
+        key: Project.PerformanceValuePillar.Environmental,
+        color: "#90EE90",
+      },
+      {
+        name: "Operating Performance",
+        key: Project.PerformanceValuePillar.Operating,
+        color: "#87CEEB",
+      },
+      {
+        name: "Safety Performance",
+        key: Project.PerformanceValuePillar.Safety,
+        color: "#F0A0A0",
+      },
     ];
 
     return defaultPillars.map((pillar) => {
-      const count = pillarCounts.get(pillar.name) || 0;
-      const percentage = totalProjects > 0 ? Math.round((count / totalProjects) * 100) : 0;
+      const count = pillarCounts.get(pillar.key) || 0;
+      const percentage =
+        totalProjects > 0 ? Math.round((count / totalProjects) * 100) : 0;
 
       return {
         name: pillar.name,
